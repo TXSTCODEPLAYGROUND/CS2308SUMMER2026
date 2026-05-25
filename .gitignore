@@ -1,0 +1,56 @@
+*.pptx
+# Directories
+data
+# Ignore all run.sh files
+**/run.sh
+
+# Allow run.sh in the root directory
+!/run.sh
+text/
+
+# Ignore Local WIP
+WIP
+
+# Some hiddens
+~$*.pptx
+.DS_Store
+.idea
+.vscode
+.cache
+GitSkip
+cmake-build-debug
+build
+*.dSYM
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
