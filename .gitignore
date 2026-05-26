@@ -1,4 +1,3 @@
-*.pptx
 # Directories
 data
 # Ignore all run.sh files
@@ -12,7 +11,6 @@ text/
 WIP
 
 # Some hiddens
-~$*.pptx
 .DS_Store
 .idea
 .vscode
