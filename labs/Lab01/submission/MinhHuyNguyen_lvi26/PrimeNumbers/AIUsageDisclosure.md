@@ -4,13 +4,13 @@
 Fill this out before submitting. Be honest and specific.
 
 ## Who you are
-- Name:
-- NetID:
-- Date:
+- Name: Minh Huy Nguyen
+- NetID: lvi26
+- Date: 05/29/2026
 - Link to your solution (if done via github): 
 
 ## What you used AI for
-- Tasks assisted (e.g., code explanation, generating tests, debugging, writing docs):
+- Tasks assisted (e.g., code explanation, generating tests, debugging, writing docs): I did not use AI.
 - Specific files or functions where AI suggestions were applied:
 
 ## How you used the suggestions
