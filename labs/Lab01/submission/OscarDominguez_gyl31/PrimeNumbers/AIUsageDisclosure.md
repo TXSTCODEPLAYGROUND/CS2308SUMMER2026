@@ -4,13 +4,14 @@
 Fill this out before submitting. Be honest and specific.
 
 ## Who you are
-- Name:
-- NetID:
-- Date:
+- Name: Oscar Dominguez
+- NetID: gyl31
+- Date: 05/29/2026
 - Link to your solution (if done via github): 
 
 ## What you used AI for
 - Tasks assisted (e.g., code explanation, generating tests, debugging, writing docs):
+  - DID NOT USE AI: only used online sources such as c++ documentation to explain/remember certain math functions
 - Specific files or functions where AI suggestions were applied:
 
 ## How you used the suggestions

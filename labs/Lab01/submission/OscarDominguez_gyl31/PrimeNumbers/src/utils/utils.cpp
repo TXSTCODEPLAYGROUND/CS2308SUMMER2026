@@ -8,6 +8,12 @@
 // Primality
 // -----------------------------------------------------------------------------
 
+/*
+ *Implemented
+ *1. Cousin Primes
+ *2. and couple..
+ */
+
 bool isPrime(int n) {
     if (n < 2 || n % 2 == 0) return n == 2;
     for (int i = 3; i * i <= n; i += 2) {
