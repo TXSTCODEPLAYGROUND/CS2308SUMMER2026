@@ -1,0 +1,344 @@
+# CS2308: C++ Programming Class Repository
+
+## Overview
+
+Welcome to the CS2308 C++ Programming Class repository. This repository is intended to contain course materials and projects for the CS2308 course.
+
+***Please review GitHub readme sections in Canvas***
+
+## Repository Rules
+
+This repository is **private**. Unauthorized sharing of this repository or any of its contents is strictly prohibited.
+
+## Guidelines for Students
+
+* **No Direct Changes to Main Branch**: Students are not allowed to make any changes directly to the main branch.
+* **Pushing Your Work**:
+    * You should push all your work to the `contributions/your_username/` folder. Replace `your_username` with your actual github username.
+    * If you wish to contribute to the `chapters/unitxx` sections, open PR and seek review before merging to `main`
+    * Please follow PR guide-lines below to make reviewable Pull Requests
+* **PR Guide Lines for merging to Main Branch**:
+    * If you wish to contribute to the main branch, you must first create a new branch.
+    * Your branch name should follow this format: `netid_yourname_fixing_lecture001_array`
+        * Example: If your netid is `jdoe123`, and name is JDoe and you are fixing the code for lecture 001 on arrays, your branch name should be `jdoe123_jdoe_fixing_lecture001_array`.
+        * Comments: Your comments should be meaningful and follow this pattern, `"Jdoe, Lecture001 array code bugs removed"`
+    * Once your work is complete, open a pull request for a review.
+    * Add Grader (Sandhya Neupane, email: `sandhya@txstate.edu` username: `sandhyaneupane`) as a reviewer.
+* **Executing Projects (VS Code or VIA Terminal)**:
+    ``` bash
+    bash run.sh path\to\your\project
+    ```
+
+    or,
+
+    ``` bash
+    sh run.sh path\to\your\project
+    ```
+
+    or,
+
+    ``` bash
+    .\run.sh path\to\your\project
+    ```
+
+    e.g., if you want compile and run
+
+    ```
+    chapter_codes/unit01/LambdaFunctions
+    ```
+
+    you should execute:
+
+    ``` bash
+    sh run.sh chapter_codes/unit01/LambdaFunctions
+    ```
+* **Executing Projects (VS Code or VIA Terminal)**:
+  * Open each projects (e.g., `chapter_codes/unit01/LambdaFunctions` as main directory in CLION, select `CMakeLists.txt` -> right click -> Reload CMAke Project)
+  * Now you execute the code by clicking Play Button
+
+***NOTE*** You can compile and execute the projects using CLION or VSCode using Run(Play Icon) button Or, you can use terminal to execute `run.sh` commands from root-directory to compile and execute the projects with:
+
+Here's a **basic workflow** for students to contribute code to the GitHub project, broken down into clear steps:
+
+- - -
+
+## Basic Workflow
+
+### 1\. Initial Setup
+
+Follow these steps to set up the project locally:
+
+1. **Clone the Repository from git-bash or terminal (or, you can use CLION, follow canvas video instructions):**
+
+``` bash
+git clone https://github.com/TXSTCODEPLAYGROUND/CS2308SUMMER2026.git
+```
+
+* This will create a folder named `CS2308SUMMER2026` on your local machine.
+    * Open a terminal and run the following command to clone the project to your local machine:
+2. **Navigate into the Project Directory:**
+
+``` bash
+cd CS2308SUMMER2026
+```
+
+- - -
+
+### 2\. Running Specific Code Examples
+
+There are two ways to run the code examples based on the editor you're using:
+
+**A. Using CLion or VSCode (CLion Recommended for C++ users):**
+
+1. Open **CLion or VSCode** and select **"Open Project"**, then navigate to the cloned project folder.
+2. Locate the specific code example (E.g., open `chapters/unit01/LambdaFunctions` as main directory) or program you want to run.
+3. Click the **Run** button in **CLion or VSCode** to execute the selected program.
+**CLion Run Example**
+    1. You can open any projects inside chapters/unitxx/SomeProjectName independently in CLION
+    2. Example: chapters/unit01/LambdaFunctions can be open in a new CLION Window
+    3. Goto File->Reload Cmake Files or, Select CMAKELists.txt file -> right click -> Reload Cmake Files (Note: Sometimes you should delete cmake-build-debug folder)
+    4. Execute the program by running play (execute, green triangle) button
+
+**B. Using Command Line (Alternative Approach):**
+
+1. Open **CS2308SUMMER2026** as root-directory in **Visual Studio Code or CLION, and open the terminal**.
+2. Now follow **Executing Projects** guidelines above
+3. Use the `run.sh` script to execute the program by running:
+
+``` bash
+sh run.sh path/to/project/dir
+```
+
+or,
+
+``` bash
+bash run.sh path/to/project/dir
+```
+
+or,
+
+``` bash
+./run.sh path/to/project/dir
+```
+
+Ensure the script has execute permissions. If not, grant it using:
+
+``` bash
+chmod +x run.sh
+```
+
+- - -
+
+### 3\. Contribution Guidelines
+
+You can contribute code to **three specific locations** within the project:
+
+1. <b>`chapter_codes/`</b> – Contribute high-quality, well-documented code related to specific chapters.
+2. <b>`students/your_username/`</b> – A personal folder where you can upload any reasonable code you want.
+3. <b>`students/contributions/`</b> – Submit quality contributions that may benefit the entire class.
+
+**Important Note:**
+
+* Ensure that code in `chapter_codes/` and `students/contributions/` meets quality standards.
+* Feel free to experiment and upload any relevant code in `students/your_username/`.
+
+- - -
+
+### 4\. Basic Workflow to Contribute Code
+
+**Step 1: Create or Switch to a Working Branch**
+Before making changes, create a new branch or switch to an existing branch you are working on:
+
+* To create a new branch:
+
+``` bash
+git checkout -b your-branch-name
+```
+
+* If you have an existing branch:
+
+``` bash
+git checkout existing-branch-name
+```
+
+- - -
+
+**Step 2: Start Working on Your Changes**
+
+* Modify the code or add new files in the appropriate folder (`chapter_codes/`, `students/your_username/`, or `students/contributions/`).
+* Test your changes to ensure they work correctly.
+
+- - -
+
+**Step 3: Add Your Changes**
+After making changes, add them to the staging area:
+
+``` bash
+git add .
+```
+
+- - -
+
+**Step 4: Commit Your Changes**
+Write meaningful commit messages following this format:
+
+``` bash
+git commit -m "Added [feature/bugfix] in [folder_name]: Short description"
+```
+
+**Examples:**
+
+``` bash
+git commit -m "Added quicksort algorithm in chapter_codes"
+git commit -m "Fixed bug in students/contributions/matrix_operations"
+```
+
+- - -
+
+**Step 5: Push Your Changes**
+Push your local changes to the remote repository:
+
+``` bash
+git push origin your-branch-name
+```
+
+- - -
+
+**Step 6: Create a Pull Request (PR)**
+
+1. After pushing, you will see a message with a link to create a pull request (PR). Note: If you are already working on old PR you don't need to create new PR.
+2. Click on the link or manually go to the GitHub repository and create a PR.
+3. **Specify:**
+    * A meaningful title.
+    * A brief description of your changes.
+    * Select the correct branch for merging.
+
+- - -
+
+**Step 7: Request Code Review**
+
+* Add reviewers by tagging:
+    * Your **friend** and **Grader** (`@sandhyaneupane`) or **ME**(`@keshavsbhandari`).
+* I may not always be available to review, but TA or your friends can provide feedback. Eventually TA will approve your PR and you can merge it to main.
+
+- - -
+
+**Step 8: Merge the Code**
+
+* Once the PR is **approved**, you will have permission to merge your code.
+* Click the "Merge" button to incorporate your changes into the main branch.
+
+- - -
+
+### 5\. Additional Tips
+
+* **Sync Your Local Repo:**
+Before starting new work, always fetch the latest changes from the main branch to avoid conflicts:
+
+``` bash
+git pull origin main
+```
+
+* **Check Your Work:**
+Use `git status` to track changes and ensure everything is staged before committing.
+* **Stay Organized:**
+Work on small, manageable tasks instead of large, complex changes in a single PR.
+
+- - -
+
+Following these steps ensures a smooth contribution process and helps maintain project quality.
+
+## GIT CHEAT SHEET
+
+### GIT CLONING
+
+Clone a repository from a remote URL:
+
+``` bash
+$ git clone https://git.somedomain.com/some.git
+```
+
+### CHECKING CURRENT BRANCH
+
+Default branch is usually `main`. To check your current branch:
+
+``` bash
+$ git branch
+```
+
+### CREATING A NEW BRANCH
+
+Create a new branch and switch to it immediately:
+
+``` bash
+$ git checkout -b branch_name
+```
+
+### SWITCHING BRANCHES
+
+Switch to an existing branch:
+
+``` bash
+$ git checkout branch_name
+```
+
+### DELETING A BRANCH
+
+You need to be on the `main` branch to delete another branch:
+
+``` bash
+$ git branch -d branch_name
+```
+
+### FORCE DELETE A BRANCH
+
+If the branch contains changes that need to be discarded:
+
+``` bash
+$ git branch -D branch_name
+```
+
+### REVERTING CHANGES
+
+Undo added changes before committing:
+
+``` bash
+$ git reset
+```
+
+Undo the last commit and move changes back to staging:
+
+``` bash
+$ git reset HEAD~
+```
+
+### ADDING FILES TO STAGING
+
+Stage files for commit:
+
+``` bash
+$ git add path_to_things
+```
+
+**Examples for `path_to_things`:**
+
+* Add all changes: `--all`
+* Add a specific file: `some/folder/file.txt`
+* Add all files in a folder: `some/folder/*`
+* Add an entire folder: `some/folder`
+
+### PUSHING CHANGES
+
+Push changes to a remote repository:
+
+``` bash
+$ git push -u origin branch
+```
+
+### GURU MANTRA: ALWAYS PULL BEFORE YOU PUSH
+
+Always pull the latest changes before making any modifications:
+
+``` bash
+$ git pull
+```
