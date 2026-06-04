@@ -10,8 +10,7 @@ int main() {
     std::cout << "\n--- Solution tests ---\n";
     testSolution("isPrime");
     testSolution("isTwinPrime");
-    /*
-    testSolution("isMersennePrime");
+    testSolution("isMersennePrime"); //removed 2047 as positive case
     testSolution("isFermatPrime");
     testSolution("isSophieGermainPrime");
     testSolution("isEmirp");
@@ -24,6 +23,6 @@ int main() {
     testSolution("isRightTruncatablePrime");
     testSolution("isTruncatablePrime");
     testSolution("satisfies6kPlusMinus1Form");
-    */
+
     return 0;
 }
