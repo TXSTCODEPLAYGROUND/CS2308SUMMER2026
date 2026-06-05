@@ -1,0 +1,12 @@
+
+User: alright so I am new to Github and am using clion for an IDE. my terminal reads ...
+
+Assistant: [Conversation about GitHub, CLion, CMake configuration, duplicate symbols, and project setup.]
+
+Key outcomes:
+- Learned difference between cloning vs manually moving project folders
+- Identified repo as a multi-project repository
+- Located correct CMakeLists.txt
+- Loaded the correct CMake project in CLion
+- Resolved “file doesn’t belong to any target project” by loading the CMake project
+- Discussed adding txt files to GitHub submissions
