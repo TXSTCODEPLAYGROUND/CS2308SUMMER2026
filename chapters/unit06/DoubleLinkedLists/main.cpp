@@ -65,7 +65,13 @@ struct DoublyLinkedList {
      * - Reset head and tail at the end
      */
     ~DoublyLinkedList() {
-        // TODO: Implement
+        Node* curr = head;
+        while (curr) {
+            Node* next = curr->next;
+            delete curr;
+            curr = next;
+        }
+        head = tail = nullptr;
     }
 
     /**
@@ -103,7 +109,13 @@ struct DoublyLinkedList {
      * - Return true immediately if found
      */
     bool find(int key) const {
-        // TODO: Implement
+        Node* curr = head;
+        while (curr) {
+            if (curr->data == key) {
+                return true;
+            }
+            curr = curr->next;
+        }
         return false;
     }
 
@@ -127,8 +139,15 @@ struct DoublyLinkedList {
      * Output: 3
      */
     int count_key(int key) const {
-        // TODO: Implement
-        return 0;
+        int count = 0;
+        Node* curr = head;
+        while (curr) {
+            if (curr->data == key) {
+                count++;
+            }
+            curr = curr->next;
+        }
+        return count;
     }
 
     /**
@@ -187,8 +206,34 @@ struct DoublyLinkedList {
      * - Save curr->next before deleting curr
      */
     int remove_count(int key) {
-        // TODO: Implement
-        return 0;
+        int count = 0;
+        Node* curr = head;
+
+        while (curr) {
+            Node* nextNode = curr->next;
+
+            if (curr->data == key) {
+                if (curr == head && curr == tail) {
+                    head = tail = nullptr;
+                } else if (curr == head) {
+                    head = curr->next;
+                    head->prev = nullptr;
+                } else if (curr == tail) {
+                    tail = curr->prev;
+                    tail->next = nullptr;
+                } else {
+                    curr->prev->next = curr->next;
+                    curr->next->prev = curr->prev;
+                }
+
+                delete curr;
+                count++;
+            }
+
+            curr = nextNode;
+        }
+
+        return count;
     }
 
     /**
@@ -211,8 +256,18 @@ struct DoublyLinkedList {
      * - Stop once n replacements are made
      */
     bool replace_n(int old_key, int new_key, int n) {
-        // TODO: Implement
-        return false;
+        int replaced = 0;
+        Node* curr = head;
+
+        while (curr && replaced < n) {
+            if (curr->data == old_key) {
+                curr->data = new_key;
+                replaced++;
+            }
+            curr = curr->next;
+        }
+
+        return replaced == n;
     }
 
     /**
