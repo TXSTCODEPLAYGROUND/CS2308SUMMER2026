@@ -46,7 +46,13 @@ struct LinkedList {
      * - Reset head and tail at the end
      */
     ~LinkedList() {
-        // TODO: Implement
+        Node* curr = head;
+        while (curr) {
+            Node* next = curr->next;
+            delete curr;
+            curr = next;
+        }
+        head = tail = nullptr;
     }
 
     /**
@@ -78,7 +84,13 @@ struct LinkedList {
      * - Return early if found
      */
     bool find(int key) const {
-        // TODO: Implement
+        Node* curr = head;
+        while (curr) {
+            if (curr->data == key) {
+                return true;
+            }
+            curr = curr->next;
+        }
         return false;
     }
 
@@ -102,8 +114,15 @@ struct LinkedList {
      * Output: 3
      */
         int count_key(int key) const {
-            // TODO: Implement
-            return 0;
+            int count = 0;
+            Node* curr = head;
+            while (curr) {
+                if (curr->data == key) {
+                    count++;
+                }
+                curr = curr->next;
+            }
+            return count;
         }
 
     /**
@@ -161,8 +180,39 @@ struct LinkedList {
      *   - tail updates when last node is deleted
      */
     int remove_count(int key) {
-        // TODO: Implement
-        return 0;
+        int count = 0;
+
+        while (head && head->data == key) {
+            Node* temp = head;
+            head = head->next;
+            delete temp;
+            count++;
+        }
+
+        if (!head) {
+            tail = nullptr;
+            return count;
+        }
+
+        Node* curr = head;
+
+        while (curr->next) {
+            if (curr->next->data == key) {
+                Node* temp = curr->next;
+                curr->next = temp->next;
+
+                if (temp == tail) {
+                    tail = curr;
+                }
+
+                delete temp;
+                count++;
+            } else {
+                curr = curr->next;
+            }
+        }
+
+        return count;
     }
 
     /**
@@ -185,8 +235,18 @@ struct LinkedList {
      * - Stop once n replacements are done
      */
     bool replace_n(int old_key, int new_key, int n) {
-        // TODO: Implement
-        return false;
+        int replaced = 0;
+        Node* curr = head;
+
+        while (curr && replaced < n) {
+            if (curr->data == old_key) {
+                curr->data = new_key;
+                replaced++;
+            }
+            curr = curr->next;
+        }
+
+        return replaced == n;
     }
 
     /**
