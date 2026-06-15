@@ -51,7 +51,8 @@ struct CircularLinkedList {
      * - Make it circular: node->next = node
      */
     CircularLinkedList(int value) {
-        // TODO: Implement
+        head = tail = new Node(value);
+        head->next = head;
     }
 
     /**
@@ -68,7 +69,19 @@ struct CircularLinkedList {
      * - Special case: empty list
      */
     ~CircularLinkedList() {
-        // TODO: Implement
+        if (!head) {
+            return;
+        }
+
+        Node* curr = head->next;
+        while (curr != head) {
+            Node* next = curr->next;
+            delete curr;
+            curr = next;
+        }
+
+        delete head;
+        head = tail = nullptr;
     }
 
     /**
@@ -88,7 +101,17 @@ struct CircularLinkedList {
      *   update tail
      */
     void insert(int value) {
-        // TODO: Implement
+        Node* newNode = new Node(value);
+
+        if (!head) {
+            head = tail = newNode;
+            newNode->next = head;
+            return;
+        }
+
+        newNode->next = head;
+        tail->next = newNode;
+        tail = newNode;
     }
 
     /**
@@ -105,7 +128,18 @@ struct CircularLinkedList {
      * - Stop when you return to head
      */
     bool find(int key) const {
-        // TODO: Implement
+        if (!head) {
+            return false;
+        }
+
+        Node* curr = head;
+        do {
+            if (curr->data == key) {
+                return true;
+            }
+            curr = curr->next;
+        } while (curr != head);
+
         return false;
     }
 
@@ -122,8 +156,20 @@ struct CircularLinkedList {
      * - Handle empty list case first
      */
     int count_key(int key) const {
-        // TODO: Implement
-        return 0;
+        if (!head) {
+            return 0;
+        }
+
+        int count = 0;
+        Node* curr = head;
+        do {
+            if (curr->data == key) {
+                count++;
+            }
+            curr = curr->next;
+        } while (curr != head);
+
+        return count;
     }
 
     /**
@@ -144,8 +190,46 @@ struct CircularLinkedList {
      * - Watch for infinite loops
      */
     bool remove(int key) {
-        // TODO: Implement
-        return false;
+        if (!head) {
+            return false;
+        }
+
+        bool removed = false;
+
+        while (head->data == key) {
+            if (head == tail) {
+                delete head;
+                head = tail = nullptr;
+                return true;
+            }
+
+            Node* temp = head;
+            head = head->next;
+            tail->next = head;
+            delete temp;
+            removed = true;
+        }
+
+        if (!head) {
+            return removed;
+        }
+
+        Node* curr = head;
+        while (curr->next != head) {
+            if (curr->next->data == key) {
+                Node* temp = curr->next;
+                if (temp == tail) {
+                    tail = curr;
+                }
+                curr->next = temp->next;
+                delete temp;
+                removed = true;
+            } else {
+                curr = curr->next;
+            }
+        }
+
+        return removed;
     }
 
     /**
@@ -162,8 +246,46 @@ struct CircularLinkedList {
      * - Carefully track traversal boundary (head)
      */
     int remove_count(int key) {
-        // TODO: Implement
-        return 0;
+        if (!head) {
+            return 0;
+        }
+
+        int count = 0;
+
+        while (head->data == key) {
+            if (head == tail) {
+                delete head;
+                head = tail = nullptr;
+                return 1;
+            }
+
+            Node* temp = head;
+            head = head->next;
+            tail->next = head;
+            delete temp;
+            count++;
+        }
+
+        if (!head) {
+            return count;
+        }
+
+        Node* curr = head;
+        while (curr->next != head) {
+            if (curr->next->data == key) {
+                Node* temp = curr->next;
+                if (temp == tail) {
+                    tail = curr;
+                }
+                curr->next = temp->next;
+                delete temp;
+                count++;
+            } else {
+                curr = curr->next;
+            }
+        }
+
+        return count;
     }
 
     /**
@@ -181,7 +303,23 @@ struct CircularLinkedList {
      * - Stop after n replacements OR full cycle
      */
     bool replace_n(int old_key, int new_key, int n) {
-        // TODO: Implement
+        if (!head || n <= 0) {
+            return n <= 0;
+        }
+
+        int replaced = 0;
+        Node* curr = head;
+        do {
+            if (curr->data == old_key) {
+                curr->data = new_key;
+                replaced++;
+                if (replaced == n) {
+                    return true;
+                }
+            }
+            curr = curr->next;
+        } while (curr != head);
+
         return false;
     }
 
@@ -199,8 +337,46 @@ struct CircularLinkedList {
      * - Stop early when n reached
      */
     bool remove_n(int key, int n) {
-        // TODO: Implement
-        return false;
+        if (!head || n <= 0) {
+            return false;
+        }
+
+        int removed = 0;
+
+        while (removed < n && head->data == key) {
+            if (head == tail) {
+                delete head;
+                head = tail = nullptr;
+                return ++removed == n;
+            }
+
+            Node* temp = head;
+            head = head->next;
+            tail->next = head;
+            delete temp;
+            removed++;
+        }
+
+        if (!head) {
+            return removed == n;
+        }
+
+        Node* curr = head;
+        while (removed < n && curr->next != head) {
+            if (curr->next->data == key) {
+                Node* temp = curr->next;
+                if (temp == tail) {
+                    tail = curr;
+                }
+                curr->next = temp->next;
+                delete temp;
+                removed++;
+            } else {
+                curr = curr->next;
+            }
+        }
+
+        return removed == n;
     }
 
     /**
@@ -220,7 +396,18 @@ struct CircularLinkedList {
      * - Avoid infinite loops
      */
     void print() const {
-        // TODO: Implement
+        if (!head) {
+            cout << "nullptr\n";
+            return;
+        }
+
+        Node* curr = head;
+        do {
+            cout << "[" << curr->data << "] -> ";
+            curr = curr->next;
+        } while (curr != head);
+
+        cout << "(back to head)\n";
     }
 };
 
