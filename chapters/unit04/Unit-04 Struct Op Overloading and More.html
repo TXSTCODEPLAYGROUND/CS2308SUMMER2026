@@ -1,0 +1,2496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Struct, Operator Overloading &amp; Classes — Unit 04</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#fff;color:#1a1a2e;width:100vw;height:100vh;overflow:hidden;}
+
+#draw-canvas{position:fixed;inset:0;z-index:999;pointer-events:none;}
+#draw-canvas.pen-on{pointer-events:all;cursor:none;}
+#draw-canvas.eraser-on{pointer-events:all;cursor:none;}
+#draw-cursor{position:fixed;left:0;top:0;width:17px;height:17px;border-radius:50%;border:2px solid #111827;background:rgba(255,255,255,.88);box-shadow:0 0 0 2px rgba(255,255,255,.95),0 0 9px rgba(0,0,0,.45);pointer-events:none;z-index:2000;display:none;transform:translate(-50%,-50%);}
+#draw-cursor::before,#draw-cursor::after{content:'';position:absolute;background:#111827;left:50%;top:50%;transform:translate(-50%,-50%);}
+#draw-cursor::before{width:11px;height:2px;}
+#draw-cursor::after{width:2px;height:11px;}
+#draw-cursor.show{display:block;}
+#draw-cursor.eraser{border-color:#0f172a;background:rgba(255,255,255,.94);border-style:dashed;width:23px;height:23px;}
+
+#toolbar{position:fixed;left:12px;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(26,26,46,0.94);
+  border-radius:22px;padding:10px 8px;z-index:1000;box-shadow:0 4px 16px rgba(0,0,0,0.25);}
+.tb{width:30px;height:30px;border-radius:50%;border:1.5px solid transparent;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;
+  background:rgba(255,255,255,0.08);transition:all 0.2s;}
+.tb:hover{background:rgba(255,255,255,0.18);}
+.tb.active{background:#534AB7;border-color:#7F77DD;}
+.cb{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);cursor:pointer;transition:all 0.2s;}
+.cb:hover{transform:scale(1.2);}
+.cb.active{border-color:white;transform:scale(1.25);}
+.sb{border-radius:50%;background:white;cursor:pointer;border:2px solid rgba(255,255,255,0.25);}
+.sb.active{border-color:#a78bfa;}
+.tdiv{width:18px;height:1px;background:rgba(255,255,255,0.15);margin:2px 0;}
+
+.nav{position:fixed;bottom:14px;right:16px;display:flex;gap:6px;z-index:1000;}
+.nbtn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:16px;font-weight:700;cursor:pointer;border:none;transition:all 0.2s;}
+.pb{background:#f1f5f9;color:#6b7280;}.pb:hover{background:#e2e8f0;}
+.nb{background:#534AB7;color:white;}.nb:hover{background:#3C3489;}
+.info-bar{position:fixed;bottom:18px;left:16px;font-size:11px;color:#9ca3af;max-width:520px;z-index:1000;}
+.top-chrome{position:fixed;top:12px;right:16px;display:flex;align-items:center;gap:8px;z-index:1000;}
+.zoom-bar{position:fixed;top:12px;left:56px;display:flex;align-items:center;gap:4px;z-index:1000;
+  background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:4px 8px;box-shadow:0 2px 10px rgba(15,23,42,.06);}
+.zoom-btn{width:26px;height:26px;border-radius:7px;border:1px solid transparent;background:transparent;
+  cursor:pointer;font-size:13px;line-height:1;color:#6b7280;display:flex;align-items:center;justify-content:center;
+  padding:0;font-family:inherit;transition:all .15s;}
+.zoom-btn:hover{border-color:#c7d2fe;color:#534AB7;background:#f5f3ff;}
+.zoom-btn.active{background:#534AB7;border-color:#534AB7;color:#fff;}
+.zoom-slider{width:72px;height:4px;accent-color:#534AB7;cursor:pointer;margin:0 2px;}
+.zoom-pct{font-size:10px;font-weight:700;color:#6b7280;min-width:34px;text-align:right;font-variant-numeric:tabular-nums;}
+.counter{font-size:11px;color:#9ca3af;background:white;padding:3px 9px;border-radius:20px;border:1px solid #e5e7eb;}
+.jump-toggle{width:30px;height:30px;border-radius:9px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;color:#6b7280;transition:all .2s;padding:0;}
+.jump-toggle:hover,.jump-toggle.active{border-color:#534AB7;color:#534AB7;background:#f5f3ff;}
+.grid-icon{display:grid;grid-template-columns:1fr 1fr;gap:2.5px;width:12px;height:12px;}
+.grid-icon span{background:currentColor;border-radius:1px;}
+.jump-panel{position:fixed;top:48px;right:16px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;
+  padding:10px 12px;box-shadow:0 8px 28px rgba(15,23,42,.12);z-index:1001;display:none;max-height:70vh;overflow-y:auto;}
+.jump-panel.open{display:block;}
+.jump-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;}
+.jump-btn{width:28px;height:26px;border-radius:7px;border:1px solid #e5e7eb;background:#fff;font-size:11px;
+  font-weight:700;color:#6b7280;cursor:pointer;padding:0;transition:all .15s;font-family:inherit;}
+.jump-btn:hover{border-color:#534AB7;color:#534AB7;background:#f5f3ff;}
+.jump-btn.active{background:#534AB7;border-color:#534AB7;color:#fff;}
+
+.slide{position:absolute;inset:0;display:none;overflow:auto;overflow-x:auto;
+  background:#fff;padding:42px 20px 58px;-webkit-overflow-scrolling:touch;}
+.slide.active{display:block;}
+.slide>.cpp-wrap{margin:0 auto;transform-origin:top center;transition:transform .12s ease;}
+.sl-title{font-size:24px;font-weight:700;color:#1a1a2e;text-align:center;margin-bottom:14px;}
+.sl-title span{color:#534AB7;}
+.sl-sub{font-size:13px;color:#6b7280;text-align:center;margin:-8px 0 14px;line-height:1.5;}
+.panel{background:#fff;border:1.5px solid #e5e7eb;border-radius:16px;padding:15px 17px;box-shadow:0 6px 18px rgba(15,23,42,.05);opacity:0;transform:translateY(10px);transition:all .5s cubic-bezier(0.34,1.2,0.64,1);}
+.panel.show{opacity:1;transform:translateY(0);}
+.panel-kick{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:#534AB7;font-weight:800;}
+.panel-title{font-size:15px;font-weight:700;color:#1a1a2e;margin:3px 0 8px;}
+.panel-sub{font-size:12px;color:#6b7280;line-height:1.55;}
+
+.cpp-wrap{width:100%;max-width:1180px;padding:8px 26px 56px;display:flex;flex-direction:column;align-items:center;gap:14px;}
+.cpp-split{display:grid;grid-template-columns:1fr 1fr;gap:18px;width:100%;align-items:start;}
+.cpp-split.wide{grid-template-columns:1.1fr .9fr;}
+@media(max-width:900px){.cpp-split,.cpp-split.wide{grid-template-columns:1fr;}}
+
+.code-block{position:relative;background:#1a1a2e;border-radius:12px;padding:32px 16px 14px;font-family:'Courier New',Consolas,monospace;font-size:11px;line-height:1.65;color:#e5e7eb;overflow-x:auto;white-space:pre;border:1.5px solid transparent;}
+.code-block:has(.code-line){white-space:normal;padding-left:3.6em;counter-reset:code-ln;}
+.code-block .code-line{display:block;position:relative;white-space:pre;counter-increment:code-ln;}
+.code-block .code-line:empty{min-height:1.65em;}
+.code-block .code-line::before{
+  content:counter(code-ln);position:absolute;left:-3em;width:2.6em;text-align:right;
+  color:#9ca3af;opacity:0;font-size:.95em;font-weight:600;user-select:none;pointer-events:none;transition:opacity .15s ease;
+}
+.code-block.show-lines .code-line::before{opacity:1;}
+.code-block.theme-light.show-lines .code-line::before{color:#64748b;}
+.code-block.sm{font-size:10px;padding:30px 14px 12px;}
+.code-block .kw{color:#c084fc;}
+.code-block .ty{color:#67e8f9;}
+.code-block .cm{color:#6b7280;font-style:italic;}
+.code-block .num{color:#fbbf24;}
+.code-block .str{color:#86efac;}
+.code-block .hl{background:rgba(29,158,117,.35);display:inline-block;width:calc(100% + 8px);margin-left:-4px;padding:0 4px;border-radius:4px;border-left:3px solid #1D9E75;}
+.code-block .hl-warn{background:rgba(239,68,68,.25);border-left-color:#ef4444;}
+.code-block .hl-ptr{background:rgba(59,130,246,.25);border-left-color:#3b82f6;}
+.code-block-toolbar{position:absolute;top:10px;right:10px;display:flex;gap:2px;z-index:3;}
+.code-ln-btn,.code-theme-btn,.code-edit-btn{width:24px;height:24px;border-radius:6px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;color:inherit;opacity:.32;transition:opacity .2s ease,background .2s ease,transform .15s ease;font-family:inherit;flex-shrink:0;}
+.code-ln-btn:hover,.code-theme-btn:hover,.code-edit-btn:hover{opacity:.88;background:rgba(255,255,255,.08);}
+.code-ln-btn:active,.code-theme-btn:active,.code-edit-btn:active{transform:scale(.94);}
+.code-ln-btn:focus-visible,.code-theme-btn:focus-visible,.code-edit-btn:focus-visible{outline:2px solid rgba(83,74,183,.45);outline-offset:2px;opacity:.88;}
+.code-ln-btn.active,.code-theme-btn.active{opacity:.72;}
+.code-ln-btn svg,.code-theme-btn svg,.code-edit-btn svg{display:block;flex-shrink:0;}
+.code-edit-btn.has-override{opacity:.72;}
+.code-edit-btn.has-override::after{content:'';position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:#1D9E75;}
+.code-edit-btn{position:relative;}
+.code-block.theme-light .code-ln-btn:hover,.code-block.theme-light .code-theme-btn:hover,.code-block.theme-light .code-edit-btn:hover{background:rgba(15,23,42,.06);}
+.code-block-editing{padding-bottom:10px;}
+.code-block-editor{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.code-edit-textarea{width:100%;min-height:9em;resize:vertical;border-radius:8px;border:1.5px solid rgba(83,74,183,.35);background:#0f0f1a;color:#e5e7eb;font-family:inherit;font-size:inherit;line-height:1.65;padding:10px 12px;box-sizing:border-box;}
+.code-block.theme-light .code-edit-textarea{background:#fff;color:#1e293b;border-color:#c7d2fe;}
+.code-edit-textarea:focus{outline:2px solid rgba(83,74,183,.4);outline-offset:1px;}
+.code-edit-actions{display:flex;flex-wrap:wrap;gap:6px;}
+.code-edit-save,.code-edit-cancel,.code-edit-revert{font-size:10px;font-weight:600;padding:5px 12px;border-radius:8px;border:1.5px solid transparent;cursor:pointer;font-family:inherit;}
+.code-edit-save{background:#534AB7;color:#fff;border-color:#534AB7;}
+.code-edit-save:hover{background:#4338a8;}
+.code-edit-cancel{background:transparent;color:inherit;border-color:#4b5563;opacity:.85;}
+.code-edit-cancel:hover{opacity:1;background:rgba(255,255,255,.06);}
+.code-edit-revert{background:transparent;color:#fbbf24;border-color:#fbbf24;opacity:.9;}
+.code-edit-revert:hover{opacity:1;background:rgba(251,191,36,.1);}
+.code-block.theme-light .code-edit-cancel{border-color:#cbd5e1;}
+.code-block.theme-light .code-edit-cancel:hover{background:rgba(15,23,42,.04);}
+.code-block.theme-light{background:#f8fafc;color:#1e293b;border-color:#e2e8f0;}
+.code-block.theme-light .kw{color:#7c3aed;}
+.code-block.theme-light .ty{color:#0891b2;}
+.code-block.theme-light .cm{color:#64748b;}
+.code-block.theme-light .num{color:#d97706;}
+.code-block.theme-light .str{color:#16a34a;}
+.code-block.theme-light .hl{background:rgba(29,158,117,.18);border-left-color:#1D9E75;}
+.code-block.theme-light .hl-warn{background:rgba(239,68,68,.12);border-left-color:#ef4444;}
+.code-block.theme-light .hl-ptr{background:rgba(59,130,246,.12);border-left-color:#3b82f6;}
+.code-block.theme-light.locked .reveal-target{background:#cbd5e1;}
+.code-block.theme-light.locked .reveal-target::after{color:#64748b;}
+.locked .reveal-target{color:transparent;background:#374151;border-radius:4px;display:inline;}
+.locked .reveal-target .err{color:transparent;}
+.code-block>.reveal-target{display:block;width:100%;}
+.locked .reveal-target::after{content:' ????? ';color:#9ca3af;}
+.revealed .reveal-target{color:inherit;background:none;}
+.revealed .reveal-target::after{content:none;}
+.out-box.locked,.trace-bar.locked{opacity:.7;}
+.out-box.revealed,.trace-bar.revealed{opacity:1;}
+
+.trace-bar{background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:10px 14px;font-size:12px;color:#534AB7;font-weight:700;line-height:1.5;min-height:42px;}
+.trace-bar.warn{background:#fff5f5;border-color:#fecaca;color:#b91c1c;}
+.trace-bar.ok{background:#ecfdf5;border-color:#a7f3d0;color:#15803d;}
+
+.quiz-box{background:linear-gradient(135deg,#f5f3ff,#fff);border:2px dashed #c7d2fe;border-radius:14px;padding:14px 16px;margin:10px 0;}
+.quiz-q{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:10px;line-height:1.5;}
+.quiz-opts{display:flex;flex-wrap:wrap;gap:8px;}
+.quiz-btn{padding:8px 14px;border-radius:10px;border:2px solid #e5e7eb;background:#fff;font-size:11.5px;font-weight:600;color:#374151;cursor:pointer;transition:all .2s;font-family:inherit;text-align:left;}
+.quiz-btn:hover:not(:disabled){border-color:#534AB7;color:#534AB7;background:#f5f3ff;}
+.quiz-btn:disabled{cursor:default;opacity:.85;}
+.quiz-btn.correct{border-color:#1D9E75;background:#ecfdf5;color:#15803d;}
+.quiz-btn.wrong{border-color:#ef4444;background:#fff5f5;color:#b91c1c;animation:shake .35s;}
+.quiz-fb{font-size:11.5px;margin-top:8px;font-weight:600;min-height:18px;}
+.quiz-fb.ok{color:#15803d;}
+.quiz-fb.warn{color:#b91c1c;}
+
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+.use-card{background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 14px;}
+.use-card h4{font-size:12px;font-weight:800;color:#534AB7;margin-bottom:4px;}
+.use-card p{font-size:11.5px;color:#6b7280;line-height:1.5;}
+
+.cmp-table{width:100%;border-collapse:collapse;font-size:12px;}
+.cmp-table th,.cmp-table td{padding:8px 12px;border:1px solid #e5e7eb;text-align:left;}
+.cmp-table th{background:#f5f3ff;color:#534AB7;font-weight:800;}
+.cmp-table td.hl-cell{background:#ecfdf5;font-weight:700;}
+
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;}
+.tab-btn{padding:8px 16px;border-radius:14px;border:2px solid #e5e7eb;background:#f8fafc;font-size:12px;font-weight:700;color:#6b7280;cursor:pointer;transition:all .2s;}
+.tab-btn:hover{border-color:#c7d2fe;}
+.tab-btn.active{background:#534AB7;border-color:#534AB7;color:white;box-shadow:0 6px 16px rgba(83,74,183,.3);}
+
+.out-box{background:#0f172a;border-radius:10px;padding:10px 14px;font-family:'Courier New',Consolas,monospace;font-size:11px;color:#86efac;line-height:1.6;}
+.out-box .prompt{display:block;color:#9ca3af;margin-bottom:4px;}
+.out-box .out-line{display:block;white-space:pre;}
+.out-table{width:auto;border-collapse:collapse;margin-top:4px;font-family:inherit;font-size:inherit;}
+.out-table th,.out-table td{padding:1px 0;white-space:nowrap;vertical-align:top;}
+.out-table thead th{color:#9ca3af;font-weight:600;border-bottom:1px solid rgba(148,163,184,.3);padding-bottom:4px;}
+.out-table tbody td{color:#86efac;}
+.out-col-game{width:25ch;min-width:25ch;max-width:25ch;text-align:left;}
+.out-col-score{width:10ch;min-width:10ch;text-align:right;}
+.out-table tbody td:last-child{text-align:right;}
+.out-box .reveal-target{display:block;}
+.locked .out-box .reveal-target .out-line{color:transparent;}
+.locked .out-box .reveal-target .out-table{opacity:0;}
+.revealed .out-box .reveal-target .out-table{opacity:1;}
+.out-box .err{color:#fca5a5;}
+
+.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
+.tag{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.5px;}
+.tag-pub{background:#dbeafe;color:#1d4ed8;}
+.tag-prv{background:#fee2e2;color:#b91c1c;}
+.tag-ok{background:#dcfce7;color:#15803d;}
+.tag-bad{background:#fee2e2;color:#b91c1c;}
+
+.op-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;}
+@media(max-width:800px){.op-grid{grid-template-columns:1fr;}}
+.op-cat{background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px;}
+.op-cat h4{font-size:11px;font-weight:800;color:#534AB7;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;}
+.op-item{font-size:11px;padding:4px 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;gap:8px;}
+.op-item:last-child{border-bottom:none;}
+.op-item .sym{font-family:'Courier New',monospace;font-weight:800;color:#1a1a2e;}
+.op-item.yes .status{color:#15803d;font-weight:700;}
+.op-item.no .status{color:#b91c1c;font-weight:700;}
+
+.fin-note{font-size:12px;color:#6b7280;line-height:1.55;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid #e5e7eb;}
+.s17-steps,.s19-steps{display:flex;flex-direction:column;gap:5px;min-width:0;}
+.s19-steps{opacity:.45;pointer-events:none;transition:opacity .2s ease;}
+.s19-steps.quiz-done{opacity:1;pointer-events:auto;}
+.s17-step-btn{width:100%;text-align:left;padding:8px 11px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;
+  font-size:10.5px;font-weight:600;color:#374151;cursor:pointer;font-family:inherit;transition:all .2s;line-height:1.45;
+  display:flex;flex-direction:column;align-items:flex-start;gap:2px;}
+.s17-step-num{font-weight:700;font-size:11px;}
+.s17-step-hint{display:none;font-size:10px;font-weight:500;color:#6b7280;line-height:1.4;}
+.s17-step-hint code{font-size:9.5px;}
+.s17-step-btn.done .s17-step-hint{display:block;}
+.s17-step-btn.done .s17-step-num{color:#15803d;}
+.s17-step-btn:hover:not(:disabled){border-color:#534AB7;background:#f5f3ff;color:#534AB7;}
+.s17-step-btn.active-next{border-color:#534AB7;box-shadow:0 0 0 2px rgba(83,74,183,.12);}
+.s17-step-btn.done,.s17-step-btn.correct{background:#ecfdf5;border-color:#1D9E75;color:#15803d;}
+.s17-step-btn.wrong{border-color:#ef4444;background:#fff5f5;color:#b91c1c;animation:shake .35s;}
+.s17-step-btn:disabled:not(.done):not(.correct){opacity:.55;cursor:default;}
+#s16-out.locked{display:none;}
+#s16-out.revealed{display:block;}
+#s17-op.locked .reveal-target::after{content:none;}
+#s19-sig.locked .reveal-target{color:#9ca3af;background:none;}
+#s19-sig.locked .reveal-target::after{content:none;}
+.s1-name{font-size:11px;color:#9ca3af;text-align:center;margin-top:8px;}
+
+.title-hero{text-align:center;animation:up .8s ease both;}
+.title-hero h1{font-size:36px;font-weight:800;color:#1a1a2e;line-height:1.2;}
+.title-hero h1 span{color:#534AB7;}
+.title-hero .unit{font-size:14px;color:#6b7280;margin-top:10px;letter-spacing:2px;text-transform:uppercase;}
+.title-pills{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;}
+.title-pill{padding:8px 16px;border-radius:20px;background:#f5f3ff;border:1.5px solid #ddd6fe;font-size:12px;font-weight:700;color:#534AB7;}
+pre[class*=language-].line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}pre[class*=language-].line-numbers>code{position:relative;white-space:inherit}.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:0;font-size:100%;left:-3.8em;width:3em;letter-spacing:-1px;border-right:1px solid #999;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.line-numbers-rows>span{display:block;counter-increment:linenumber}.line-numbers-rows>span:before{content:counter(linenumber);color:#999;display:block;padding-right:.8em;text-align:right}</style>
+</head>
+<body>
+<canvas id="draw-canvas"></canvas>
+<div id="draw-cursor"></div>
+
+<div id="toolbar">
+  <div class="tb active" id="btn-pointer" onclick="setMode('pointer')">👆</div>
+  <div class="tb" id="btn-pen" onclick="setMode('pen')">✏️</div>
+  <div class="tb" id="btn-eraser" onclick="setMode('eraser')">🧹</div>
+  <div class="tb" onclick="clearAll()">🗑️</div>
+  <div class="tdiv"></div>
+  <div class="cb active" id="col-r" style="background:#ef4444" onclick="setColor('#ef4444','col-r')"></div>
+  <div class="cb" id="col-b" style="background:#3b82f6" onclick="setColor('#3b82f6','col-b')"></div>
+  <div class="cb" id="col-g" style="background:#22c55e" onclick="setColor('#22c55e','col-g')"></div>
+  <div class="cb" id="col-y" style="background:#f59e0b" onclick="setColor('#f59e0b','col-y')"></div>
+  <div class="cb" id="col-w" style="background:#fff;border-color:rgba(255,255,255,0.4)" onclick="setColor('#ffffff','col-w')"></div>
+  <div class="tdiv"></div>
+  <div class="sb active" id="sz-s" style="width:9px;height:9px;" onclick="setSize(3,'sz-s')"></div>
+  <div class="sb" id="sz-m" style="width:14px;height:14px;" onclick="setSize(6,'sz-m')"></div>
+  <div class="sb" id="sz-l" style="width:20px;height:20px;" onclick="setSize(13,'sz-l')"></div>
+</div>
+
+<div class="nav">
+  <button class="nbtn pb" onclick="prevSlide()">←</button>
+  <button class="nbtn nb" onclick="nextStep()">→</button>
+</div>
+<div class="info-bar" id="info-bar">Press → to advance · answer quizzes to reveal hidden code</div>
+<div class="zoom-bar" id="zoom-bar" title="Slide zoom">
+  <button type="button" class="zoom-btn active" data-zoom-mode="page" onclick="event.stopPropagation();setZoomMode('page')" title="Fit to page" aria-label="Fit to page">⊡</button>
+  <button type="button" class="zoom-btn" data-zoom-mode="width" onclick="event.stopPropagation();setZoomMode('width')" title="Fit to width" aria-label="Fit to width">↔</button>
+  <button type="button" class="zoom-btn" data-zoom-mode="height" onclick="event.stopPropagation();setZoomMode('height')" title="Fit to height" aria-label="Fit to height">↕</button>
+  <input type="range" class="zoom-slider" id="zoom-slider" min="50" max="200" value="100" aria-label="Zoom level" oninput="setZoomManual(this.value)" onclick="event.stopPropagation()"/>
+  <span class="zoom-pct" id="zoom-pct">100%</span>
+</div>
+<div class="top-chrome">
+  <div class="counter" id="counter">Slide 1 / 20</div>
+  <button class="jump-toggle" id="jump-toggle" onclick="event.stopPropagation();toggleJumpPanel()" title="Jump to slide" aria-label="Jump to slide">
+    <span class="grid-icon"><span></span><span></span><span></span><span></span></span>
+  </button>
+</div>
+<div class="jump-panel" id="jump-panel">
+  <div class="jump-grid" id="jump-grid"></div>
+</div>
+<!-- SLIDE 1 — TITLE -->
+<div class="slide active" id="s1">
+  <div class="cpp-wrap">
+    <div class="title-hero">
+      <h1>Struct, Operator<br><span>Overloading</span> &amp; Classes</h1>
+      <div class="unit">Unit 04 · CS2308</div>
+      <div class="title-pills">
+        <span class="title-pill">Structs &amp; constructors</span>
+        <span class="title-pill">Access control</span>
+        <span class="title-pill">Operator overloading</span>
+      </div>
+      <div class="s1-name" style="margin-top:28px;">Interactive deck — press → to advance · quizzes unlock hidden code</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 2 — WHAT IS A STRUCT -->
+<div class="slide" id="s2">
+  <div class="cpp-wrap">
+    <div class="sl-title">What is a <span>struct</span>?</div>
+    <div class="sl-sub">A user-defined aggregate type — fields + methods grouped together</div>
+
+    <div class="panel show" id="s2-p1">
+      <div class="panel-sub" style="margin-bottom:12px;">
+        In C++, a <strong>struct</strong> is a user-defined aggregate data type that can contain
+        member variables (fields) and member functions (methods). It is very similar to a
+        <strong>class</strong> — the main difference is the <em>default access</em>.
+      </div>
+      <table class="cmp-table">
+        <tr><th></th><th>struct</th><th>class</th></tr>
+        <tr><td>Default access</td><td class="hl-cell">public</td><td>private</td></tr>
+        <tr><td>Can have methods?</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Constructors / destructors?</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Operator overloading?</td><td>Yes</td><td>Yes</td></tr>
+      </table>
+    </div>
+
+    <div class="panel" id="s2-p2">
+      <div class="panel-kick">Real-world use cases</div>
+      <div class="cpp-split" style="margin-top:8px;">
+        <div class="use-card"><h4>Game state</h4><p>Bundle a player name, score, and inventory into one <code>Player</code> struct passed between systems.</p></div>
+        <div class="use-card"><h4>Sensor readings</h4><p>Group timestamp, temperature, and humidity — easier than three parallel arrays.</p></div>
+        <div class="use-card"><h4>Network packets</h4><p>Fixed-layout headers (source, dest, length) map naturally to structs for parsing.</p></div>
+        <div class="use-card"><h4>Graphics</h4><p><code>Point{x, y}</code>, <code>Color{r,g,b,a}</code> — small value types used everywhere.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 3 — PERSON STRUCT -->
+<div class="slide" id="s3">
+  <div class="cpp-wrap">
+    <div class="sl-title">Struct in action — <span>Person</span></div>
+    <div class="sl-sub">Members, constructor, and a member function</div>
+
+    <div class="panel show" id="s3-p1">
+      <div class="panel-kick">Step 1 — define the struct</div>
+      <div class="cpp-split wide">
+        <div class="code-block" id="s3-code">
+<span class="code-line"><span class="cm">// person.cpp</span></span>
+<span class="code-line" data-line="1"><span class="kw">#include</span> &lt;iostream&gt;</span>
+<span class="code-line" data-line="2"><span class="kw">using namespace</span> std;</span>
+<span class="code-line" data-line="3"></span>
+<span class="code-line" data-line="4"><span class="kw">struct</span> <span class="ty">Person</span> {</span>
+<span class="code-line" data-line="5">    <span class="cm">// Member variables</span></span>
+<span class="code-line" data-line="6">    <span class="ty">string</span> name;</span>
+<span class="code-line" data-line="7">    <span class="ty">int</span> age;</span>
+<span class="code-line" data-line="8"></span>
+<span class="code-line" data-line="9">    <span class="cm">// Constructor</span></span>
+<span class="code-line" data-line="10">    <span class="ty">Person</span>(<span class="kw">const</span> <span class="ty">string</span>&amp; n, <span class="ty">int</span> a) : name(n), age(a) {}</span>
+<span class="code-line" data-line="11"></span>
+<span class="code-line" data-line="12">    <span class="cm">// Member function</span></span>
+<span class="code-line" data-line="13">    <span class="ty">void</span> printInfo() {</span>
+<span class="code-line" data-line="14">        cout &lt;&lt; <span class="str">"Name: "</span> &lt;&lt; name &lt;&lt; <span class="str">", Age: "</span> &lt;&lt; age &lt;&lt; endl;</span>
+<span class="code-line" data-line="15">    }</span>
+<span class="code-line" data-line="16">};</span>
+        </div>
+        <div>
+          <div class="quiz-box" id="s3-quiz">
+            <div class="quiz-q">Which line is the <em>member initializer list</em>?</div>
+            <div class="quiz-opts">
+              <button class="quiz-btn" onclick="checkQuiz('s3-quiz',1,'s3-main',null,this)">Line 6–7 (fields)</button>
+              <button class="quiz-btn" onclick="checkQuiz('s3-quiz',1,'s3-main',null,this)">Line 10 — <code>: name(n), age(a)</code></button>
+              <button class="quiz-btn" onclick="checkQuiz('s3-quiz',1,'s3-main',null,this)">Line 13 (printInfo)</button>
+            </div>
+            <div class="quiz-fb"></div>
+          </div>
+          <div class="code-block locked" id="s3-main" style="margin-top:10px;">
+<span class="code-line" data-line="1"><span class="ty">int</span> <span class="kw">main</span>() {</span>
+<span class="code-line" data-line="2">    <span class="ty">Person</span> person(<span class="str">"Keshav"</span>, <span class="num">999</span>);</span>
+<span class="code-line" data-line="3">    person.printInfo();</span>
+<span class="code-line" data-line="4">}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="s3-p2">
+      <div class="panel-kick">Output</div>
+      <div class="out-box">
+<span class="prompt">&gt; ./a.out</span>
+Name: Keshav, Age: 999
+      </div>
+      <div class="trace-bar ok" style="margin-top:10px;">Constructor runs at creation · printInfo() reads members directly — no extra parameters needed</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 4 — CONSTRUCTOR DISSECTION -->
+<div class="slide" id="s4">
+  <div class="cpp-wrap">
+    <div class="sl-title">Constructor <span>dissection</span></div>
+    <div class="sl-sub">The constructor defines <em>how</em> objects of this struct are born</div>
+
+    <div class="panel show" id="s4-p1">
+      <div class="cpp-split wide">
+        <div class="code-block" id="s4-code">
+<span class="kw">struct</span> <span class="ty">Person</span> {
+    <span class="ty">string</span> name;
+    <span class="ty">int</span> age;
+
+    <span class="code-line hl" data-line="1"><span class="ty">Person</span>(<span class="kw">const</span> <span class="ty">string</span>&amp; n, <span class="ty">int</span> a)
+        : name(n), age(a) {}</span>
+
+    <span class="ty">void</span> printInfo() { ... }
+};
+        </div>
+        <div>
+          <div class="panel-sub" style="margin-bottom:10px;">
+            <strong>Constructor</strong> = special member function with the same name as the struct.
+            Called automatically when you write <code>Person("Keshav", 999)</code>.
+          </div>
+          <div class="use-card"><h4>Why initializer list?</h4><p><code>: name(n), age(a)</code> initializes members <em>before</em> the body runs — faster and required for <code>const</code> / reference members.</p></div>
+          <div class="use-card" style="margin-top:8px;"><h4>Use case</h4><p>Force valid state: a <code>BankAccount</code> constructor can reject negative balances at creation time.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="s4-p2">
+      <div class="panel-kick">Anatomy</div>
+      <div class="tag-row">
+        <span class="tag tag-ok">Name matches struct</span>
+        <span class="tag tag-ok">No return type</span>
+        <span class="tag tag-ok">Can be overloaded</span>
+        <span class="tag tag-ok">Runs once per object</span>
+      </div>
+      <div class="trace-bar">A constructor is how you say: <em>"this is how I want to define my structure"</em></div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 5 — QUIZ: NO CONSTRUCTOR -->
+<div class="slide" id="s5">
+  <div class="cpp-wrap">
+    <div class="sl-title">Quiz — <span>delete the constructor?</span></div>
+    <div class="sl-sub">What happens when main still calls Person("Keshav", 999)?</div>
+
+    <div class="panel show" id="s5-p1">
+      <div class="cpp-split wide">
+        <div class="code-block" id="s5-code">
+<span class="kw">struct</span> <span class="ty">Person</span> {
+    <span class="ty">string</span> name;
+    <span class="ty">int</span> age;
+    <span class="cm">// Constructor DELETED — no Person(string, int)</span>
+    <span class="ty">void</span> printInfo() { ... }
+};
+
+<span class="ty">int</span> <span class="kw">main</span>() {
+    <span class="ty">Person</span> person(<span class="str">"Keshav"</span>, <span class="num">999</span>);  <span class="cm">// line 17</span>
+    person.printInfo();
+}
+        </div>
+        <div>
+          <div class="quiz-box" id="s5-quiz">
+            <div class="quiz-q">Will <code>g++ basics001.cpp</code> succeed?</div>
+            <div class="quiz-opts">
+              <button class="quiz-btn" onclick="checkQuiz('s5-quiz',1,'s5-err',null,this)">Yes — compiles and runs</button>
+              <button class="quiz-btn" onclick="checkQuiz('s5-quiz',1,'s5-err',null,this)">No — no matching constructor</button>
+              <button class="quiz-btn" onclick="checkQuiz('s5-quiz',1,'s5-err',null,this)">Yes — default constructor fills in values</button>
+            </div>
+            <div class="quiz-fb"></div>
+          </div>
+          <div class="out-box locked" id="s5-err" style="margin-top:10px;">
+<span class="prompt">&gt; g++ basics001.cpp</span>
+<span class="reveal-target"><span class="err">basics001.cpp:17:12: error: no matching constructor</span>
+<span class="err">for initialization of 'Person'</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="s5-p2">
+      <div class="panel-kick">Fix — add the constructor back</div>
+      <div class="code-block locked" id="s5-fix">
+<span class="ty">Person</span>(<span class="kw">const</span> <span class="ty">string</span>&amp; n, <span class="ty">int</span> a) : <span class="reveal-target">name(n), age(a)</span> {}
+      </div>
+      <div class="quiz-box" id="s5-quiz2" style="margin-top:10px;">
+        <div class="quiz-q">What must the hidden line initialize?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s5-quiz2',0,'s5-fix',null,this)">name(n), age(a) via initializer list</button>
+          <button class="quiz-btn" onclick="checkQuiz('s5-quiz2',0,'s5-fix',null,this)">return n + a</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 6 — DEFAULT CONSTRUCTOR -->
+<div class="slide" id="s6">
+  <div class="cpp-wrap">
+    <div class="sl-title">Default <span>constructor</span></div>
+    <div class="sl-sub">No constructor written? The compiler supplies an empty one</div>
+
+    <div class="panel show" id="s6-p1">
+      <div class="panel-sub" style="margin-bottom:12px;">
+        Not having a constructor is equivalent to having an empty constructor like below.
+        But that only works for <strong>default construction</strong> — not <code>Person("Keshav", 999)</code>.
+      </div>
+      <div class="code-block" id="s6-code">
+<span class="kw">struct</span> <span class="ty">Person</span> {
+    <span class="ty">string</span> name;
+    <span class="ty">int</span> age;
+    <span class="code-line s6-ctor-view" data-line="1" id="s6-ctor-default"><span class="ty">Person</span>() {}  <span class="cm">// compiler-generated equivalent</span></span>
+    <span class="code-line s6-ctor-view" data-line="1" id="s6-ctor-param" style="display:none"><span class="ty">Person</span>(<span class="kw">const</span> <span class="ty">string</span>&amp; n, <span class="ty">int</span> a) : name(n), age(a) {}</span>
+};
+      </div>
+    </div>
+
+    <div class="panel" id="s6-p2">
+      <div class="panel-kick">Two initialization styles</div>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab-btn="s6" onclick="s6SwitchTab('s6-tab-a',this)">Option 1 — default then assign</button>
+        <button class="tab-btn" data-tab-btn="s6" onclick="s6SwitchTab('s6-tab-b',this)">Option 2 — all parameters</button>
+      </div>
+      <div id="s6-tab-a" data-tab-group="s6">
+        <div class="code-block sm">
+<span class="ty">Person</span> p;           <span class="cm">// default ctor</span>
+p.name = <span class="str">"Keshav"</span>;
+p.age = <span class="num">999</span>;
+        </div>
+        <div class="trace-bar warn">Works, but object briefly exists in an incomplete state</div>
+      </div>
+      <div id="s6-tab-b" data-tab-group="s6" style="display:none">
+        <div class="code-block sm">
+<span class="ty">Person</span> p(<span class="str">"Keshav"</span>, <span class="num">999</span>);  <span class="cm">// parameterized ctor</span>
+        </div>
+        <div class="trace-bar ok">Preferred — object is valid immediately after construction</div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 7 — NAMING CONFLICT QUIZ -->
+<div class="slide" id="s7">
+  <div class="cpp-wrap">
+    <div class="sl-title">Quiz — <span>naming conflicts</span></div>
+    <div class="sl-sub">What is the best way to reference members in a constructor?</div>
+
+    <div class="panel show" id="s7-p1">
+      <div class="cpp-split wide">
+        <div class="code-block" id="s7-bad">
+<span class="kw">struct</span> <span class="ty">Scores</span> {
+    <span class="ty">string</span> team;
+    <span class="ty">string</span> town;
+    <span class="code-line hl-warn" data-line="1"><span class="ty">Scores</span>(<span class="kw">const</span> <span class="ty">string</span>&amp; t, <span class="kw">const</span> <span class="ty">string</span>&amp; t)
+        : team(t), town(t) {}</span>
+};
+        </div>
+        <div>
+          <div class="quiz-box" id="s7-quiz">
+            <div class="quiz-q">What's wrong with this constructor?</div>
+            <div class="quiz-opts">
+              <button class="quiz-btn" onclick="checkQuiz('s7-quiz',1,'s7-fix',null,this)">Nothing — it's fine</button>
+              <button class="quiz-btn" onclick="checkQuiz('s7-quiz',1,'s7-fix',null,this)">Duplicate parameter name <code>t</code></button>
+              <button class="quiz-btn" onclick="checkQuiz('s7-quiz',1,'s7-fix',null,this)">struct can't have strings</button>
+            </div>
+            <div class="quiz-fb"></div>
+          </div>
+          <div class="panel-sub" style="margin-top:8px;">Workaround <code>t0, t1</code> works but is not ideal — we want readable names.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="s7-p2">
+      <div class="panel-kick">Three valid fixes — reveal by answering</div>
+      <div class="quiz-box" id="s7-quiz2">
+        <div class="quiz-q">Best practice when parameter names match members?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="s7Quiz2(0,this)">Initializer list: <code>team(team), town(town)</code></button>
+          <button class="quiz-btn" onclick="s7Quiz2(1,this)">Assignment with <code>this-></code></button>
+          <button class="quiz-btn" onclick="s7Quiz2(2,this)">Rename params: <code>teamName, townName</code></button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+      <div class="code-block locked" id="s7-fix" style="margin-top:8px;">
+<span class="ty">Scores</span>(<span class="kw">const</span> <span class="ty">string</span>&amp; team, <span class="kw">const</span> <span class="ty">string</span>&amp; town)
+    : <span class="reveal-target">team(team), town(town)</span> {}
+      </div>
+      <div class="code-block locked" id="s7-this" style="margin-top:8px;display:none;">
+<span class="ty">Scores</span>(<span class="kw">const</span> <span class="ty">string</span>&amp; team, <span class="kw">const</span> <span class="ty">string</span>&amp; town) {
+    <span class="reveal-target">this-&gt;team = team; this-&gt;town = town;</span>
+}
+      </div>
+      <div class="code-block locked" id="s7-rename" style="margin-top:8px;display:none;">
+<span class="ty">Scores</span>(<span class="kw">const</span> <span class="ty">string</span>&amp; teamName, <span class="kw">const</span> <span class="ty">string</span>&amp; townName)
+    : <span class="reveal-target">team(teamName), town(townName)</span> {}
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 8 — THIS POINTER -->
+<div class="slide" id="s8">
+  <div class="cpp-wrap">
+    <div class="sl-title">The <span>this</span> pointer</div>
+    <div class="sl-sub">A pointer to the current instance — resolves naming conflicts</div>
+
+    <div class="panel show" id="s8-p1">
+      <div class="cpp-split wide">
+        <div class="code-block" id="s8-code">
+<span class="code-line" data-line="1"><span class="kw">struct</span> <span class="ty">Scores</span> {</span>
+<span class="code-line" data-line="2">    <span class="ty">string</span> team;</span>
+<span class="code-line" data-line="3">    <span class="ty">string</span> town;</span>
+<span class="code-line s8-ctor-view s8-assign-line" data-line="4" id="s8-ctor-assign-open">    <span class="ty">Scores</span>(<span class="kw">const</span> <span class="ty">string</span>&amp; team, <span class="kw">const</span> <span class="ty">string</span>&amp; town) {</span>
+<span class="code-line s8-ctor-view s8-assign-line" data-line="5" id="s8-line-this1">        this-&gt;team = team;</span>
+<span class="code-line s8-ctor-view s8-assign-line" data-line="6" id="s8-line-this2">        this-&gt;town = town;</span>
+<span class="code-line s8-ctor-view s8-assign-line" data-line="7" id="s8-line-close">    }</span>
+<span class="code-line s8-ctor-view" data-line="4" id="s8-ctor-init" style="display:none">    <span class="ty">Scores</span>(<span class="kw">const</span> <span class="ty">string</span>&amp; team, <span class="kw">const</span> <span class="ty">string</span>&amp; town)</span>
+<span class="code-line s8-ctor-view" data-line="5" id="s8-ctor-init-list" style="display:none">        : team(team), town(town) {}</span>
+<span class="code-line" data-line="8">};</span>
+        </div>
+        <div>
+          <div class="panel-sub"><strong>this</strong> is a pointer — a reference to the <em>current instance</em> of the structure.</div>
+          <div class="use-card" style="margin-top:10px;"><h4>Good habit</h4><p>Use <code>this-&gt;</code> when parameter names shadow member names.</p></div>
+          <div class="use-card" style="margin-top:8px;"><h4>Use case</h4><p>Fluent interfaces: <code>return *this;</code> enables method chaining like <code>builder.setX(1).setY(2)</code>.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="s8-p2">
+      <div class="panel-kick">Quiz — identical operations</div>
+      <div class="quiz-box" id="s8-quiz">
+        <div class="quiz-q">Two equivalent constructors — pick a style to see it in the struct above.</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="s8Quiz(0,this)">Initializer list <code>: team(team), town(town)</code></button>
+          <button class="quiz-btn" onclick="s8Quiz(1,this)">Body assignment <code>this-&gt;team = team</code></button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+      <div class="trace-bar ok" style="margin-top:8px;" id="s8-hint">Initializer list is preferred — required for const/reference members</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 9 — CASE STUDY -->
+<div class="slide" id="s9">
+  <div class="cpp-wrap">
+    <div class="sl-title">Case study — <span>Person records</span></div>
+    <div class="sl-sub">Sensitive data grouped in one struct</div>
+
+    <div class="panel show" id="s9-p1">
+      <div class="code-block sm" id="s9-code">
+<span class="kw">struct</span> <span class="ty">Person</span> {
+    <span class="ty">string</span> name, ssn, pin, phone;
+    <span class="ty">Person</span>(<span class="ty">string</span> na, <span class="ty">string</span> ss, <span class="ty">string</span> pi, <span class="ty">string</span> ph)
+        : name(na), ssn(ss), pin(pi), phone(ph) {}
+};
+      </div>
+      <div class="panel-sub" style="margin-top:10px;">
+        Real apps store related identity fields together. Next we'll see why leaving everything
+        <code>public</code> is risky — and how access specifiers help.
+      </div>
+      <div class="use-card" style="margin-top:8px;"><h4>Use case</h4><p>HR systems, student records, healthcare apps — bundle identity fields but control who can read them.</p></div>
+    </div>
+
+    <div class="panel" id="s9-p2">
+      <div class="panel-kick">Quiz — find the typo</div>
+      <div class="quiz-box" id="s9-quiz">
+        <div class="quiz-q">Someone wrote <code>Person p(ssn, name, pin, phone)</code> — what's the risk?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s9-quiz',1,'s9-hint',null,this)">No risk — order doesn't matter</button>
+          <button class="quiz-btn" onclick="checkQuiz('s9-quiz',1,'s9-hint',null,this)">Arguments map positionally — wrong field assignment</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+      <div class="trace-bar locked" id="s9-hint" style="margin-top:8px;">
+        <span class="reveal-target">Constructor params are positional: (name, ssn, pin, phone). Swapping args silently corrupts data — use strong types or named factories.</span>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 10 — ACCESS SPECIFIERS -->
+<div class="slide" id="s10">
+  <div class="cpp-wrap">
+    <div class="sl-title">Access <span>specifiers</span></div>
+    <div class="sl-sub">private · public — limit who can touch your members</div>
+
+    <div class="panel show" id="s10-p1">
+      <div class="panel-sub" style="margin-bottom:12px;">
+        <code>private</code>, <code>protected</code>, and <code>public</code> control access outside the struct.
+        In a <strong>struct</strong>, members are <code>public</code> by default. We'll ignore <code>protected</code> for now.
+      </div>
+      <div class="code-block" id="s10-code">
+<span class="code-line"><span class="kw">struct</span> <span class="ty">SomeStruct</span> {</span>
+<span class="code-line" data-line="1"><span class="kw">private</span>:</span>
+<span class="code-line">    <span class="cm">// ACCESS WITHIN STRUCT ONLY</span></span>
+<span class="code-line">    <span class="ty">int</span> secret;</span>
+<span class="code-line"></span>
+<span class="code-line" data-line="2"><span class="kw">public</span>:</span>
+<span class="code-line">    <span class="cm">// ACCESS FROM OUTSIDE (main, other code)</span></span>
+<span class="code-line">    <span class="ty">void</span> reveal() { cout &lt;&lt; secret; }</span>
+<span class="code-line">};</span>
+      </div>
+    </div>
+
+    <div class="panel" id="s10-p2">
+      <div class="quiz-box" id="s10-quiz">
+        <div class="quiz-q">From <code>main()</code>, can you write <code>s.secret = 5</code> if secret is private?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s10-quiz',1,'s10-ex',null,this)">Yes — structs are always public</button>
+          <button class="quiz-btn" onclick="checkQuiz('s10-quiz',1,'s10-ex',null,this)">No — compiler error; use public methods</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+      <div class="code-block locked sm" id="s10-ex" style="margin-top:8px;">
+<span class="code-line"><span class="cm">// main.cpp</span></span>
+<span class="code-line"><span class="ty">SomeStruct</span> s;</span>
+<span class="code-line">s.secret = <span class="num">5</span>;</span>
+<span class="code-line"><span class="cm reveal-target">// ERROR: 'secret' is private</span></span>
+<span class="code-line">s.reveal();</span>
+<span class="code-line"><span class="cm">// OK — public method</span></span>
+      </div>
+      <div class="use-card" style="margin-top:10px;"><h4>Encapsulation</h4><p>Hide implementation details (PIN validation) behind a public API (<code>getSSN()</code>) — callers can't bypass security checks.</p></div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 11 — BAD CODE QUIZ -->
+<div class="slide" id="s11">
+  <div class="cpp-wrap">
+    <div class="sl-title">Quiz — <span>find the bug</span></div>
+    <div class="sl-sub">WARNING: this is intentionally bad code</div>
+
+    <div class="panel show" id="s11-p1">
+      <div class="code-block sm locked" id="s11-code">
+<span class="code-line"><span class="kw">struct</span> <span class="ty">Person</span> {</span>
+<span class="code-line"><span class="kw">private</span>:</span>
+<span class="code-line">    <span class="ty">string</span> name, ssn, pin, phone;</span>
+<span class="code-line">    <span class="ty">bool</span> validate() {</span>
+<span class="code-line">        <span class="ty">string</span> pin;</span>
+<span class="code-line">        <span class="cm">// shadows member!</span></span>
+<span class="code-line">        cout &lt;&lt; <span class="str">"Enter pin: "</span>; cin &gt;&gt; pin;</span>
+<span class="code-line">        <span class="reveal-target">return pin == this-&gt;pin;</span></span>
+<span class="code-line">    }</span>
+<span class="code-line"><span class="kw">public</span>:</span>
+<span class="code-line">    <span class="ty">Person</span>(<span class="ty">string</span> n, <span class="ty">string</span> s, <span class="ty">string</span> p)</span>
+<span class="code-line">        : name(n), ssn(s), pin(p) {}</span>
+<span class="code-line">    <span class="ty">string</span> getSSN() {</span>
+<span class="code-line">        <span class="kw">if</span>(validate()) <span class="kw">return</span> ssn;</span>
+<span class="code-line">        <span class="kw">else return</span> <span class="str">"000-00-000"</span>;</span>
+<span class="code-line">    }</span>
+<span class="code-line">    <span class="ty">string</span> getPhone() {</span>
+<span class="code-line">        <span class="kw">if</span>(validate()) <span class="kw">return</span> <span class="reveal-target">this-&gt;ssn</span>;</span>
+<span class="code-line">        <span class="kw">else return</span> <span class="str">"000-000-0000"</span>;</span>
+<span class="code-line">    }</span>
+<span class="code-line">    <span class="ty">void</span> updatePhone(<span class="kw">const</span> <span class="ty">string</span>&amp; ph) { ... }</span>
+<span class="code-line">};</span>
+      </div>
+      <div class="quiz-box" id="s11-quiz" style="margin-top:10px;">
+        <div class="quiz-q">In <code>getPhone()</code>, what should be returned after validation?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s11-quiz',1,'s11-code',null,this)">this-&gt;ssn (current code)</button>
+          <button class="quiz-btn" onclick="checkQuiz('s11-quiz',1,'s11-code',null,this)">this-&gt;phone</button>
+          <button class="quiz-btn" onclick="checkQuiz('s11-quiz',1,'s11-code',null,this)">pin</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="s11-p2">
+      <div class="panel-kick">Other design smells</div>
+      <div class="tag-row">
+        <span class="tag tag-bad">cin/cout inside struct</span>
+        <span class="tag tag-bad">local pin shadows member</span>
+        <span class="tag tag-bad">getPhone returns SSN</span>
+      </div>
+      <div class="trace-bar warn">Better: pass PIN into validate(pin) from main — keeps I/O separate from data logic</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 12 — DESTRUCTOR -->
+<div class="slide" id="s12">
+  <div class="cpp-wrap">
+    <div class="sl-title">Destructor <span>~StructName()</span></div>
+    <div class="sl-sub">Runs automatically when an object goes out of scope</div>
+
+    <div class="panel show" id="s12-p1">
+      <div class="cpp-split wide">
+        <div class="code-block locked" id="s12-code">
+<span class="kw">struct</span> <span class="ty">GameCard</span> {
+    <span class="ty">string</span> name;
+    <span class="ty">int</span> score;
+    <span class="ty">GameCard</span>(<span class="ty">string</span> n, <span class="ty">int</span> s) : name(n), score(s) {
+        cout &lt;&lt; <span class="str">"Game Card Created"</span> &lt;&lt; endl;
+    }
+    <span class="reveal-target"><span class="ty">~GameCard</span>() {
+        cout &lt;&lt; <span class="str">"Game Card Deleted"</span> &lt;&lt; endl;
+    }</span>
+};
+
+<span class="ty">int</span> <span class="kw">main</span>() {
+    <span class="ty">GameCard</span> card = <span class="ty">GameCard</span>(<span class="str">"Resident Evil-4, Village"</span>, <span class="num">1100</span>);
+    <span class="kw">return</span> <span class="num">0</span>;
+}
+        </div>
+        <div>
+          <div class="quiz-box" id="s12-quiz">
+            <div class="quiz-q">When is <code>~GameCard()</code> called for stack object <code>card</code>?</div>
+            <div class="quiz-opts">
+              <button class="quiz-btn" onclick="checkQuiz('s12-quiz',0,['s12-code','s12-out'],null,this)">At end of main — when scope ends</button>
+              <button class="quiz-btn" onclick="checkQuiz('s12-quiz',0,['s12-code','s12-out'],null,this)">Never — destructors are manual</button>
+              <button class="quiz-btn" onclick="checkQuiz('s12-quiz',0,['s12-code','s12-out'],null,this)">Right after constructor</button>
+            </div>
+            <div class="quiz-fb"></div>
+          </div>
+          <div class="out-box locked" id="s12-out" style="margin-top:10px;">
+<span class="prompt">&gt; ./a.out</span>
+<span class="reveal-target">Game Card Created
+Game Card Deleted</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="s12-p2">
+      <div class="use-card"><h4>Use case</h4><p>Release heap memory, close files, disconnect sockets — anything acquired in the constructor must be cleaned up in the destructor (RAII pattern).</p></div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 13 — POINTERS QUIZ -->
+<div class="slide" id="s13">
+  <div class="cpp-wrap">
+    <div class="sl-title">Structs &amp; <span>pointers</span></div>
+    <div class="sl-sub">Heap allocation requires explicit de-allocation</div>
+
+    <div class="panel show" id="s13-p1">
+      <div class="code-block" id="s13-code">
+<span class="code-line"><span class="ty">int</span> <span class="kw">main</span>() {</span>
+<span class="code-line">    <span class="cm">// Stack — auto cleanup</span></span>
+<span class="code-line">    <span class="cm">// GameCard card("RE4", 1100);</span></span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="ty">GameCard</span>* pcard = <span class="kw">new</span> <span class="ty">GameCard</span>(<span class="str">"Resident Evil-4, Village"</span>, <span class="num">1100</span>);</span>
+<span class="code-line" data-line="1"><span class="reveal-target locked-line">    delete pcard;</span></span>
+<span class="code-line">    <span class="kw">return</span> <span class="num">0</span>;</span>
+<span class="code-line">}</span>
+      </div>
+      <div class="quiz-box" id="s13-quiz" style="margin-top:10px;">
+        <div class="quiz-q">If we remove the <code>delete</code> line, what happens to "Game Card Deleted"?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s13-quiz',1,'s13-reveal',null,this)">Still prints — destructor always runs</button>
+          <button class="quiz-btn" onclick="checkQuiz('s13-quiz',1,'s13-reveal',null,this)">Never prints — memory leak</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+      <div class="trace-bar locked" id="s13-reveal" style="margin-top:8px;">
+        <span class="reveal-target">You must de-allocate memory while using pointers. Without delete, the destructor is never called — leak!</span>
+      </div>
+    </div>
+
+    <div class="panel" id="s13-p2">
+      <div class="panel-kick">Modern alternative</div>
+      <div class="code-block sm">
+<span class="code-line"><span class="ty">unique_ptr</span>&lt;<span class="ty">GameCard</span>&gt; card = make_unique&lt;<span class="ty">GameCard</span>&gt;(<span class="str">"RE4"</span>, <span class="num">1100</span>);</span>
+<span class="code-line"><span class="cm">// delete called automatically</span></span>
+      </div>
+      <div class="use-card" style="margin-top:8px;"><h4>Use case</h4><p>Dynamic arrays of variable size, polymorphic objects, or data that outlives the current scope.</p></div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 14 — OP OVERLOADING INTRO -->
+<div class="slide" id="s14">
+  <div class="cpp-wrap">
+    <div class="sl-title">Operator <span>overloading</span></div>
+    <div class="sl-sub">Unit 04.02 — teach built-in operators to work on your types</div>
+
+    <div class="panel show" id="s14-p1">
+      <div class="panel-sub" style="margin-bottom:12px;">
+        C++ lets you redefine how operators behave for user-defined types.
+        Without it, <code>cout &lt;&lt; myObject</code> and <code>card0 + card1</code> won't compile.
+      </div>
+      <div class="code-block sm" id="s14-code">
+<span class="kw">struct</span> <span class="ty">GameCard</span> {
+    <span class="ty">string</span> name;
+    <span class="ty">int</span> score;
+    <span class="ty">GameCard</span>(<span class="ty">string</span> n, <span class="ty">int</span> s) : name(n), score(s) {}
+};
+
+<span class="ty">int</span> <span class="kw">main</span>() {
+    <span class="ty">GameCard</span> card(<span class="str">"Resident Evil-4, Village"</span>, <span class="num">1100</span>);
+    cout &lt;&lt; card;  <span class="cm">// Can we do this?</span>
+}
+      </div>
+    </div>
+
+    <div class="panel" id="s14-p2">
+      <div class="quiz-box" id="s14-quiz">
+        <div class="quiz-q">Without overloading, what is the expected output format we want?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s14-quiz',0,'s14-out',null,this)">Game: RE4…  Score: 1100</button>
+          <button class="quiz-btn" onclick="checkQuiz('s14-quiz',0,'s14-out',null,this)">0x7ffe_a100 (address)</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+      <div class="out-box locked" id="s14-out" style="margin-top:8px;">
+<span class="prompt">&gt; ./a.out</span>
+<span class="reveal-target">Game: Resident Evil-4, Village
+Score: 1100</span>
+      </div>
+      <div class="use-card" style="margin-top:10px;"><h4>Use cases</h4><p>Print debugging, math on <code>Vector3D</code>, merging inventories, comparing <code>Date</code> objects with <code>&lt;</code>.</p></div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 15 — VOID OPERATOR FAIL -->
+<div class="slide" id="s15">
+  <div class="cpp-wrap">
+    <div class="sl-title">Quiz — <span>why does this fail?</span></div>
+    <div class="sl-sub">This will fail… but why?</div>
+
+    <div class="panel show" id="s15-p1">
+      <div class="code-block" id="s15-code">
+<span class="code-line"><span class="kw">struct</span> <span class="ty">GameCard</span> {</span>
+<span class="code-line">    <span class="ty">string</span> name;</span>
+<span class="code-line">    <span class="ty">int</span> score;</span>
+<span class="code-line">    <span class="ty">GameCard</span>(<span class="ty">string</span> n, <span class="ty">int</span> s) : name(n), score(s) {}</span>
+<span class="code-line">};</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="kw">void</span> operator&lt;&lt;(<span class="ty">ostream</span>&amp; COUT, <span class="ty">GameCard</span>&amp; card) {</span>
+<span class="code-line">    COUT &lt;&lt; <span class="str">"Game: "</span> &lt;&lt; card.name &lt;&lt; endl;</span>
+<span class="code-line">    COUT &lt;&lt; <span class="str">"Score: "</span> &lt;&lt; card.score &lt;&lt; endl;</span>
+<span class="code-line">}</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="ty">int</span> <span class="kw">main</span>() {</span>
+<span class="code-line">    <span class="ty">GameCard</span> card(<span class="str">"Resident Evil-4, Village"</span>, <span class="num">1100</span>);</span>
+<span class="code-line">    cout &lt;&lt; card &lt;&lt; endl;</span>
+<span class="code-line">    <span class="cm">// compiles for 1st &lt;&lt; — 2nd &lt;&lt; endl fails (void can't chain)</span></span>
+<span class="code-line">}</span>
+      </div>
+      <div class="quiz-box" id="s15-quiz" style="margin-top:10px;">
+        <div class="quiz-q">Why does <code>cout &lt;&lt; card &lt;&lt; endl</code> fail?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s15-quiz',1,'s15-fix',null,this)">GameCard can't use cout</button>
+          <button class="quiz-btn" onclick="checkQuiz('s15-quiz',1,'s15-fix',null,this)">void return — can't chain &lt;&lt; endl</button>
+          <button class="quiz-btn" onclick="checkQuiz('s15-quiz',1,'s15-fix',null,this)">endl is deprecated</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="s15-p2">
+      <div class="panel-kick">Fix — return ostream&amp;</div>
+      <div class="code-block locked" id="s15-fix">
+<span class="code-line"><span class="ty">ostream</span>&amp; <span class="reveal-target">operator&lt;&lt;(ostream&amp; COUT, GameCard&amp; card)</span> {</span>
+<span class="code-line">    COUT &lt;&lt; <span class="str">"Game: "</span> &lt;&lt; card.name &lt;&lt; endl;</span>
+<span class="code-line">    COUT &lt;&lt; <span class="str">"Score: "</span> &lt;&lt; card.score &lt;&lt; endl;</span>
+<span class="code-line">    <span class="reveal-target"><span class="kw">return</span> COUT;</span></span>
+<span class="code-line">}</span>
+      </div>
+      <div class="trace-bar ok" style="margin-top:8px;">Returning the stream enables chaining: <code>cout &lt;&lt; a &lt;&lt; b</code></div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 16 — WORKING OPERATOR<< -->
+<div class="slide" id="s16">
+  <div class="cpp-wrap">
+    <div class="sl-title">Working <span>operator&lt;&lt;</span></div>
+    <div class="sl-sub">Formatted output with maps and iomanip</div>
+
+    <div class="panel show" id="s16-p1">
+      <div class="panel-kick">Understand the following code</div>
+      <div class="code-block sm" id="s16-code">
+<span class="code-line"><span class="kw">#include</span> &lt;map&gt; &lt;iomanip&gt;</span>
+<span class="code-line"><span class="kw">struct</span> <span class="ty">GameCard</span> {</span>
+<span class="code-line">    map&lt;<span class="ty">string</span>,<span class="ty">int</span>&gt; games;</span>
+<span class="code-line">    <span class="ty">int</span> score = <span class="num">0</span>;</span>
+<span class="code-line">    <span class="ty">GameCard</span>(map&lt;<span class="ty">string</span>,<span class="ty">int</span>&gt; g) : games(g) {</span>
+<span class="code-line">        <span class="kw">for</span>(<span class="kw">const auto</span>&amp; [game, sc] : games) score += sc;</span>
+<span class="code-line">    }</span>
+<span class="code-line">};</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="ty">ostream</span>&amp; operator&lt;&lt;(<span class="ty">ostream</span>&amp; COUT, <span class="ty">GameCard</span>&amp; card) {</span>
+<span class="code-line">    COUT &lt;&lt; setw(<span class="num">25</span>) &lt;&lt; <span class="str">"Games"</span> &lt;&lt; setw(<span class="num">10</span>) &lt;&lt; <span class="str">"Score"</span> &lt;&lt; endl;</span>
+<span class="code-line">    <span class="kw">for</span>(<span class="kw">const auto</span>&amp; [game, sc] : card.games)</span>
+<span class="code-line">        COUT &lt;&lt; setw(<span class="num">25</span>) &lt;&lt; game &lt;&lt; setw(<span class="num">10</span>) &lt;&lt; sc &lt;&lt; endl;</span>
+<span class="code-line">    <span class="kw">return</span> COUT;</span>
+<span class="code-line">}</span>
+      </div>
+      <div class="code-block sm" id="s16-main" style="margin-top:8px;">
+<span class="code-line"><span class="cm">// main.cpp</span></span>
+<span class="code-line"><span class="ty">int</span> <span class="kw">main</span>() {</span>
+<span class="code-line">    map&lt;<span class="ty">string</span>,<span class="ty">int</span>&gt; games = {</span>
+<span class="code-line">        {<span class="str">"Resident Evil-4, Village"</span>, <span class="num">1100</span>},</span>
+<span class="code-line">        {<span class="str">"Assassin Creed, Mirage"</span>, <span class="num">800</span>},</span>
+<span class="code-line">        {<span class="str">"GTA-V"</span>, <span class="num">2500</span>},</span>
+<span class="code-line">        {<span class="str">"Assassin Creed, Valhalla"</span>, <span class="num">1300</span>}</span>
+<span class="code-line">    };</span>
+<span class="code-line">    <span class="ty">GameCard</span> card(games);</span>
+<span class="code-line">    cout &lt;&lt; card;</span>
+<span class="code-line">    <span class="kw">return</span> <span class="num">0</span>;</span>
+<span class="code-line">}</span>
+      </div>
+      <div class="quiz-box" id="s16-quiz" style="margin-top:10px;">
+        <div class="quiz-q">What do you think <code>cout &lt;&lt; card</code> prints?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s16-quiz',0,'s16-out',null,this)">A formatted table — each game and score in columns</button>
+          <button class="quiz-btn" onclick="checkQuiz('s16-quiz',0,'s16-out',null,this)">One line with total score only (5700)</button>
+          <button class="quiz-btn" onclick="checkQuiz('s16-quiz',0,'s16-out',null,this)">The card's memory address (e.g. 0x7ffe…)</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+      <div class="out-box locked sm" id="s16-out" style="margin-top:8px;">
+<span class="reveal-target">
+<span class="prompt">&gt; g++ -std=c++17 overloading_1.cpp &amp;&amp; ./a.out</span>
+<table class="out-table">
+<thead>
+<tr><th class="out-col-game">Games</th><th class="out-col-score">Score</th></tr>
+</thead>
+<tbody>
+<tr><td>Assassin Creed, Mirage</td><td>800</td></tr>
+<tr><td>Assassin Creed, Valhalla</td><td>1300</td></tr>
+<tr><td>GTA-V</td><td>2500</td></tr>
+<tr><td>Resident Evil-4, Village</td><td>1100</td></tr>
+</tbody>
+</table>
+</span>
+      </div>
+    </div>
+
+    <div class="panel" id="s16-p2">
+      <div class="panel-kick">How it works</div>
+      <div class="panel-sub" style="margin-bottom:10px;">
+        <code>operator&lt;&lt;</code> prints a header row, then loops <code>card.games</code>.
+        <code>setw</code> pads columns. <code>std::map</code> iterates in sorted key order.
+        The constructor sums scores into <code>card.score</code> (not printed here).
+      </div>
+      <div class="use-card"><h4>Use case</h4><p>Debug logging and CLI tools — make your types print themselves cleanly without boilerplate at every call site.</p></div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 17 — OPERATOR+ WALKTHROUGH -->
+<div class="slide" id="s17">
+  <div class="cpp-wrap">
+    <div class="sl-title">Walkthrough — <span>operator+</span></div>
+    <div class="sl-sub">Merge two game libraries: <code>card = card0 + card1</code></div>
+
+    <div class="panel show" id="s17-p1">
+      <div class="cpp-split wide">
+        <div>
+          <div class="code-block sm" id="s17-main">
+<span class="code-line"><span class="ty">int</span> <span class="kw">main</span>() {</span>
+<span class="code-line">    <span class="ty">GameCard</span> card0 = { {<span class="str">"RE4, Village"</span>,<span class="num">1100</span>}, {<span class="str">"GTA-V"</span>,<span class="num">2500</span>} };</span>
+<span class="code-line">    <span class="ty">GameCard</span> card1 = { {<span class="str">"Sniper Elite 5"</span>,<span class="num">3800</span>} };</span>
+<span class="code-line">    <span class="ty">GameCard</span> card = card0 + card1;</span>
+<span class="code-line">    cout &lt;&lt; card &lt;&lt; endl;</span>
+<span class="code-line">}</span>
+          </div>
+          <div class="out-box sm" id="s17-out" style="margin:8px 0;">
+            <span class="prompt">&gt; cout &lt;&lt; card</span>
+            <table class="out-table">
+              <thead>
+                <tr><th class="out-col-game">Games</th><th class="out-col-score">Score</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>GTA-V</td><td>2500</td></tr>
+                <tr><td>RE4, Village</td><td>1100</td></tr>
+                <tr><td>Sniper Elite 5</td><td>3800</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="code-block locked sm" id="s17-op" style="margin-top:8px;">
+<span class="code-line"><span class="ty">GameCard</span> <span class="reveal-target" id="s17-r1">?? (??, ??)</span> {</span>
+<span class="code-line">    <span class="reveal-target" id="s17-r2">??</span></span>
+<span class="code-line">    <span class="reveal-target" id="s17-r3">for(??, ??)</span></span>
+<span class="code-line">        <span class="reveal-target" id="s17-r4">??</span></span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="reveal-target" id="s17-r5">for(??, ??)</span></span>
+<span class="code-line">        <span class="reveal-target" id="s17-r6">??</span></span>
+<span class="code-line">    <span class="reveal-target" id="s17-r7">??</span></span>
+<span class="code-line">}</span>
+          </div>
+        </div>
+        <div class="s17-steps">
+          <div class="panel-kick">Reveal step by step</div>
+          <button type="button" class="s17-step-btn active-next" id="s17-step-1" onclick="s17GoStep(1,this)">
+            <span class="s17-step-num">Step 1</span>
+            <span class="s17-step-hint">Signature — <code>operator+(const GameCard&amp; card0, const GameCard&amp; card1)</code></span>
+          </button>
+          <button type="button" class="s17-step-btn" id="s17-step-2" onclick="s17GoStep(2,this)">
+            <span class="s17-step-num">Step 2</span>
+            <span class="s17-step-hint">Create empty result — <code>GameCard card;</code></span>
+          </button>
+          <button type="button" class="s17-step-btn" id="s17-step-3" onclick="s17GoStep(3,this)">
+            <span class="s17-step-num">Step 3</span>
+            <span class="s17-step-hint">Loop over <code>card0.games</code></span>
+          </button>
+          <button type="button" class="s17-step-btn" id="s17-step-4" onclick="s17GoStep(4,this)">
+            <span class="s17-step-num">Step 4</span>
+            <span class="s17-step-hint">Copy each card0 entry into <code>card</code></span>
+          </button>
+          <button type="button" class="s17-step-btn" id="s17-step-5" onclick="s17GoStep(5,this)">
+            <span class="s17-step-num">Step 5</span>
+            <span class="s17-step-hint">Loop over <code>card1.games</code></span>
+          </button>
+          <button type="button" class="s17-step-btn" id="s17-step-6" onclick="s17GoStep(6,this)">
+            <span class="s17-step-num">Step 6</span>
+            <span class="s17-step-hint">Merge each card1 entry into <code>card</code></span>
+          </button>
+          <button type="button" class="s17-step-btn" id="s17-step-7" onclick="s17GoStep(7,this)">
+            <span class="s17-step-num">Step 7</span>
+            <span class="s17-step-hint">Return the merged <code>GameCard</code></span>
+          </button>
+          <div class="trace-bar" id="s17-trace" style="margin-top:8px;">Click Step 1 to reveal the first line of code</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 18 — OPERATOR CHEF QUIZ -->
+<div class="slide" id="s18">
+  <div class="cpp-wrap">
+    <div class="sl-title">Be the <span>chef</span></div>
+    <div class="sl-sub">I gave you the recipe — figure out what is NOT possible to overload</div>
+
+    <div class="panel show" id="s18-p1">
+      <div class="op-grid" id="s18-grid">
+        <div class="op-cat">
+          <h4>Unary</h4>
+          <div class="op-item unk" data-op="+"><span class="sym">+ − ! ~ ++ -- * &amp;</span><span class="status">?</span></div>
+        </div>
+        <div class="op-cat">
+          <h4>Binary</h4>
+          <div class="op-item unk" data-op="binary"><span class="sym">+ − * / % == != &lt; &gt; &amp;&amp; ||</span><span class="status">?</span></div>
+        </div>
+        <div class="op-cat">
+          <h4>Assignment</h4>
+          <div class="op-item unk" data-op="assign"><span class="sym">= += -= *= /=</span><span class="status">?</span></div>
+        </div>
+        <div class="op-cat">
+          <h4>Special</h4>
+          <div class="op-item unk" data-op="[]"><span class="sym">[] () -&gt; -&gt;*</span><span class="status">?</span></div>
+          <div class="op-item unk" data-op="new"><span class="sym">new delete</span><span class="status">?</span></div>
+        </div>
+        <div class="op-cat">
+          <h4>NOT overloadable</h4>
+          <div class="op-item unk" data-op="dot"><span class="sym">. :: .* sizeof</span><span class="status">?</span></div>
+        </div>
+      </div>
+      <div class="quiz-box" id="s18-quiz" style="margin-top:12px;">
+        <div class="quiz-q">Which operators CANNOT be overloaded in C++?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s18-quiz',0,null,s18RevealNo,this)">. (dot) and :: (scope)</button>
+          <button class="quiz-btn" onclick="checkQuiz('s18-quiz',0,null,s18RevealNo,this)">+ and -</button>
+          <button class="quiz-btn" onclick="checkQuiz('s18-quiz',0,null,s18RevealNo,this)">[] and ()</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="s18-p2">
+      <div class="panel-kick">Hidden recipe — operator+=</div>
+      <div class="code-block locked sm" id="s18-plus-eq">
+<span class="ty">GameCard</span>&amp; <span class="kw">operator</span>+=(<span class="ty">GameCard</span>&amp; lhs, <span class="ty">GameCard</span>&amp; rhs) {
+    lhs = lhs + rhs;
+    <span class="reveal-target"><span class="kw">return</span> lhs;</span>
+}
+      </div>
+      <div class="quiz-box" id="s18-quiz2" style="margin-top:8px;">
+        <div class="quiz-q">What must operator+= return for chaining (<code>a += b += c</code>)?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s18-quiz2',0,'s18-plus-eq',null,this)">Reference to lhs</button>
+          <button class="quiz-btn" onclick="checkQuiz('s18-quiz2',0,'s18-plus-eq',null,this)">void</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 19 — CHALLENGE -->
+<div class="slide" id="s19">
+  <div class="cpp-wrap">
+    <div class="sl-title">Coding <span>challenge</span></div>
+    <div class="sl-sub">Extend the GameCard program — now you are the chef</div>
+
+    <div class="panel show" id="s19-p1">
+      <div class="panel-kick">Implement these operators</div>
+      <div class="tag-row">
+        <span class="tag tag-ok">operator+</span>
+        <span class="tag tag-pub">operator+=</span>
+        <span class="tag tag-pub">operator-=</span>
+      </div>
+      <div class="quiz-box" id="s19-quiz">
+        <div class="quiz-q">Read <code>main()</code> — what should print after <code>library -= drop</code>?</div>
+        <div class="code-block sm" id="s19-main" style="margin:8px 0;">
+<span class="code-line"><span class="ty">int</span> <span class="kw">main</span>() {</span>
+<span class="code-line">    <span class="ty">GameCard</span> library = { {<span class="str">"RE4, Village"</span>, <span class="num">1100</span>}, {<span class="str">"GTA-V"</span>, <span class="num">2500</span>} };</span>
+<span class="code-line">    <span class="ty">GameCard</span> drop = { {<span class="str">"GTA-V"</span>, <span class="num">2500</span>} };</span>
+<span class="code-line">    library -= drop;</span>
+<span class="code-line">    cout &lt;&lt; library;</span>
+<span class="code-line">}</span>
+        </div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s19-quiz',0,null,s19OnQuizCorrect,this)">Only RE4, Village — GTA-V removed</button>
+          <button class="quiz-btn" onclick="checkQuiz('s19-quiz',0,null,s19OnQuizCorrect,this)">Both games — library unchanged</button>
+          <button class="quiz-btn" onclick="checkQuiz('s19-quiz',0,null,s19OnQuizCorrect,this)">All games merged — higher total score</button>
+          <button class="quiz-btn" onclick="checkQuiz('s19-quiz',0,null,s19OnQuizCorrect,this)">Compile error — <code>-=</code> cannot be used</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+      <div class="cpp-split wide" style="margin-top:8px;">
+        <div>
+          <div class="code-block locked sm" id="s19-sig">
+<span class="code-line"><span class="cm">// operator-= — implement to make main() work</span></span>
+<span class="code-line"><span class="ty">GameCard</span>&amp; <span class="reveal-target" id="s19-r1">?? (??, ??)</span> {</span>
+<span class="code-line">    <span class="reveal-target" id="s19-r2">for(??, ??)</span></span>
+<span class="code-line">        <span class="reveal-target" id="s19-r3">??</span></span>
+<span class="code-line">    <span class="reveal-target" id="s19-r4">??</span></span>
+<span class="code-line">}</span>
+          </div>
+        </div>
+        <div class="s19-steps" id="s19-steps">
+          <div class="panel-kick">Build operator-= step by step</div>
+          <button type="button" class="s17-step-btn active-next" id="s19-step-1" onclick="s19GoStep(1,this)">
+            <span class="s17-step-num">Step 1</span>
+            <span class="s17-step-hint">Signature — <code>operator-=(GameCard&amp; card0, const GameCard&amp; card1)</code></span>
+          </button>
+          <button type="button" class="s17-step-btn" id="s19-step-2" onclick="s19GoStep(2,this)">
+            <span class="s17-step-num">Step 2</span>
+            <span class="s17-step-hint">Loop over <code>card1.games</code></span>
+          </button>
+          <button type="button" class="s17-step-btn" id="s19-step-3" onclick="s19GoStep(3,this)">
+            <span class="s17-step-num">Step 3</span>
+            <span class="s17-step-hint">Remove each game — <code>card0.games.erase(game)</code></span>
+          </button>
+          <button type="button" class="s17-step-btn" id="s19-step-4" onclick="s19GoStep(4,this)">
+            <span class="s17-step-num">Step 4</span>
+            <span class="s17-step-hint">Return <code>card0</code> for chaining</span>
+          </button>
+          <div class="trace-bar" id="s19-trace" style="margin-top:8px;">Answer the quiz — then click Step 1</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="s19-p2">
+      <div class="panel-kick">Test yourself</div>
+      <div class="fin-note">
+        <strong>Checklist:</strong> (1) All listed operators compile? (2) <code>cout &lt;&lt;</code> still chains?
+        (3) <code>card0 += card1</code> mutates card0? (4) <code>card0 -= card1</code> removes matching games?
+      </div>
+      <div class="use-card" style="margin-top:10px;"><h4>Real-world parallel</h4><p>Game engines overload <code>+</code> on vectors; finance libs overload <code>+</code> on Money types — same pattern as GameCard.</p></div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 20 — ARROW OPERATOR -->
+<div class="slide" id="s20">
+  <div class="cpp-wrap">
+    <div class="sl-title">The <span>-&gt;</span> operator</div>
+    <div class="sl-sub">Access members through a pointer — shorthand for <code>(*p).member</code></div>
+
+    <div class="panel show" id="s20-p1">
+      <div class="cpp-split wide">
+        <div class="code-block sm" id="s20-code">
+<span class="code-line"><span class="kw">struct</span> <span class="ty">GameCard</span> {</span>
+<span class="code-line">    <span class="ty">string</span> name;</span>
+<span class="code-line">    <span class="ty">int</span> score;</span>
+<span class="code-line">};</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="ty">int</span> <span class="kw">main</span>() {</span>
+<span class="code-line">    <span class="ty">GameCard</span> card = {<span class="str">"RE4, Village"</span>, <span class="num">1100</span>};</span>
+<span class="code-line">    <span class="ty">GameCard</span>* pCard = &amp;card;</span>
+<span class="code-line"></span>
+<span class="code-line">    cout &lt;&lt; card.name;       <span class="cm">// object  → use .</span></span>
+<span class="code-line">    cout &lt;&lt; pCard-&gt;name;     <span class="cm">// pointer → use -&gt;</span></span>
+<span class="code-line">    cout &lt;&lt; (*pCard).name;   <span class="cm">// same meaning as pCard-&gt;name</span></span>
+<span class="code-line">}</span>
+        </div>
+        <div>
+          <div class="panel-sub"><strong><code>.</code></strong> accesses a member on an <em>object</em>. <strong><code>-&gt;</code></strong> accesses a member when you hold a <em>pointer</em> to that object.</div>
+          <div class="use-card" style="margin-top:10px;"><h4>Rule of thumb</h4><p><code>pObj-&gt;attribute</code> is exactly <code>(*pObj).attribute</code> — dereference the pointer, then use dot.</p></div>
+          <div class="use-card" style="margin-top:8px;"><h4>Common mistake</h4><p><code>pCard.name</code> does not compile — <code>pCard</code> is a pointer, not a struct. You need <code>-&gt;</code> or <code>(*pCard).</code></p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="s20-p2">
+      <div class="quiz-box" id="s20-quiz">
+        <div class="quiz-q"><code>GameCard* pCard = &amp;card;</code> — which expressions are valid?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s20-quiz',0,'s20-equiv',null,this)"><code>pCard-&gt;score</code> and <code>(*pCard).score</code></button>
+          <button class="quiz-btn" onclick="checkQuiz('s20-quiz',0,'s20-equiv',null,this)"><code>pCard.score</code> — dot on the pointer</button>
+          <button class="quiz-btn" onclick="checkQuiz('s20-quiz',0,'s20-equiv',null,this)"><code>card-&gt;name</code> — arrow on the object</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+      <div class="trace-bar locked" id="s20-equiv" style="margin-top:8px;">
+        <span class="reveal-target"><strong>Equivalent:</strong> <code>p-&gt;member</code> ≡ <code>(*p).member</code> · <strong>Overload angle:</strong> C++ also lets you define <code>operator-&gt;</code> (smart pointers use it) — but <code>.</code> and <code>::</code> cannot be overloaded.</span>
+      </div>
+      <div class="use-card" style="margin-top:10px;"><h4>Tie-in</h4><p>You already saw <code>this-&gt;team</code> — <code>this</code> is a pointer, so members are reached with <code>-&gt;</code>, not <code>.</code></p></div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 21 — CONCLUSION -->
+<div class="slide" id="s21">
+  <div class="cpp-wrap">
+    <div class="sl-title">Unit 04 <span>recap</span></div>
+
+    <div class="panel show" id="s21-p1">
+      <table class="cmp-table">
+        <tr><th>Topic</th><th>Key takeaway</th></tr>
+        <tr><td>struct</td><td>Aggregate type — public by default; can hold data + methods</td></tr>
+        <tr><td>Constructor</td><td>Defines valid birth state; initializer list preferred</td></tr>
+        <tr><td>this</td><td>Pointer to current instance — resolves name clashes</td></tr>
+        <tr><td>Access</td><td>private hides data; public exposes safe API</td></tr>
+        <tr><td>Destructor</td><td>Cleanup at scope end; pair new with delete</td></tr>
+        <tr><td>Operator overload</td><td>Return correct type for chaining; . and :: forbidden</td></tr>
+      </table>
+    </div>
+
+    <div class="panel" id="s21-p2">
+      <div class="panel-kick">struct vs class — final quiz</div>
+      <div class="quiz-box" id="s21-quiz">
+        <div class="quiz-q">When would you pick struct over class in modern C++?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s21-quiz',1,null,null,this)">When you need private members only</button>
+          <button class="quiz-btn" onclick="checkQuiz('s21-quiz',1,null,null,this)">When data is mostly public POD / plain data</button>
+          <button class="quiz-btn" onclick="checkQuiz('s21-quiz',1,null,null,this)">They are never interchangeable</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+      <div class="trace-bar ok" style="margin-top:10px;">Convention: struct = passive data bundles · class = invariants + encapsulation</div>
+      <div class="s1-name" style="margin-top:16px;">Unit 04 · Struct, Operator Overloading &amp; Classes</div>
+    </div>
+  </div>
+</div>
+<script>
+// ══════════════════════════════════
+// DRAWING ENGINE
+// ══════════════════════════════════
+var dc=document.getElementById('draw-canvas'),dctx=dc.getContext('2d');
+var drawCursor=document.getElementById('draw-cursor');
+var drawing=false,mode='off',penColor='#ef4444',penSize=3,lx=0,ly=0;
+function updateDrawCursorStyle(){
+  if(!drawCursor)return;
+  if(mode==='off'){drawCursor.classList.remove('show','eraser');return;}
+  drawCursor.classList.add('show');
+  drawCursor.classList.toggle('eraser',mode==='eraser');
+  if(mode==='pen'){
+    var size=Math.max(17,penSize*2.5+9);
+    drawCursor.style.width=size+'px';drawCursor.style.height=size+'px';
+    drawCursor.style.borderColor=penColor;drawCursor.style.background='rgba(255,255,255,.90)';
+  }else{drawCursor.style.borderColor='#0f172a';drawCursor.style.background='rgba(255,255,255,.94)';}
+}
+function resizeDC(){var img=dctx.getImageData(0,0,dc.width,dc.height);dc.width=window.innerWidth;dc.height=window.innerHeight;dctx.putImageData(img,0,0);}
+resizeDC();window.addEventListener('resize',resizeDC);updateDrawCursorStyle();
+function setMode(m){if(m==='pointer'){mode='off';}else{mode=mode===m?'off':m;}dc.className=mode==='off'?'':(mode+'-on');['btn-pointer','btn-pen','btn-eraser'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('active');});if(mode==='off')document.getElementById('btn-pointer').classList.add('active');if(mode==='pen')document.getElementById('btn-pen').classList.add('active');if(mode==='eraser')document.getElementById('btn-eraser').classList.add('active');updateDrawCursorStyle();}
+function setColor(c,id){penColor=c;document.querySelectorAll('.cb').forEach(function(b){b.classList.remove('active');});document.getElementById(id).classList.add('active');if(mode!=='pen')setMode('pen');updateDrawCursorStyle();}
+function setSize(s,id){penSize=s;document.querySelectorAll('.sb').forEach(function(b){b.classList.remove('active');});document.getElementById(id).classList.add('active');updateDrawCursorStyle();}
+function clearAll(){dctx.clearRect(0,0,dc.width,dc.height);}
+function getPos(e){var r=dc.getBoundingClientRect();if(e.touches)return{x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top};return{x:e.clientX-r.left,y:e.clientY-r.top};}
+function moveDrawCursor(e){if(!drawCursor||mode==='off')return;var p=getPos(e);drawCursor.style.left=p.x+'px';drawCursor.style.top=p.y+'px';}
+document.addEventListener('mousemove',moveDrawCursor);
+dc.addEventListener('mouseleave',function(){drawing=false;if(drawCursor)drawCursor.classList.remove('show');});
+dc.addEventListener('mouseenter',updateDrawCursorStyle);
+dc.addEventListener('mousedown',function(e){if(mode==='off')return;moveDrawCursor(e);drawing=true;var p=getPos(e);lx=p.x;ly=p.y;});
+dc.addEventListener('mousemove',function(e){if(!drawing||mode==='off')return;var p=getPos(e);dl(lx,ly,p.x,p.y);lx=p.x;ly=p.y;});
+dc.addEventListener('mouseup',function(){drawing=false;});
+dc.addEventListener('touchstart',function(e){e.preventDefault();if(mode==='off')return;moveDrawCursor(e);drawing=true;var p=getPos(e);lx=p.x;ly=p.y;},{passive:false});
+dc.addEventListener('touchmove',function(e){e.preventDefault();if(mode!=='off')moveDrawCursor(e);if(!drawing||mode==='off')return;var p=getPos(e);dl(lx,ly,p.x,p.y);lx=p.x;ly=p.y;},{passive:false});
+dc.addEventListener('touchend',function(){drawing=false;if(drawCursor)drawCursor.classList.remove('show');});
+function dl(x1,y1,x2,y2){dctx.beginPath();if(mode==='eraser'){dctx.globalCompositeOperation='destination-out';dctx.lineWidth=penSize*6;}else{dctx.globalCompositeOperation='source-over';dctx.strokeStyle=penColor;dctx.lineWidth=penSize;}dctx.lineCap='round';dctx.lineJoin='round';dctx.moveTo(x1,y1);dctx.lineTo(x2,y2);dctx.stroke();dctx.globalCompositeOperation='source-over';}
+// ══════════════════════════════════
+// SLIDE ZOOM & SCROLL
+// ══════════════════════════════════
+var zoomMode = 'page';
+var zoomManual = 100;
+var ZOOM_MODE_KEY = 'cpp-slide-zoom-mode';
+var ZOOM_MANUAL_KEY = 'cpp-slide-zoom-manual';
+
+function getActiveSlide() {
+  return document.querySelector('.slide.active');
+}
+
+function getActiveWrap() {
+  var slide = getActiveSlide();
+  return slide ? slide.querySelector('.cpp-wrap') : null;
+}
+
+function measureWrap(wrap) {
+  var prevTransform = wrap.style.transform;
+  var prevMargin = wrap.style.marginBottom;
+  wrap.style.transform = 'none';
+  wrap.style.marginBottom = '0';
+  var w = wrap.offsetWidth;
+  var h = wrap.scrollHeight;
+  wrap.style.transform = prevTransform;
+  wrap.style.marginBottom = prevMargin;
+  return { w: w, h: h };
+}
+
+function zoomAvailSize() {
+  var slide = getActiveSlide();
+  if (!slide) return { w: window.innerWidth - 48, h: window.innerHeight - 100 };
+  return { w: slide.clientWidth - 32, h: slide.clientHeight - 24 };
+}
+
+function computeAutoScale(mode) {
+  var wrap = getActiveWrap();
+  if (!wrap) return 1;
+  var size = measureWrap(wrap);
+  var avail = zoomAvailSize();
+  if (!size.w || !size.h) return 1;
+  if (mode === 'width') return avail.w / size.w;
+  if (mode === 'height') return avail.h / size.h;
+  return Math.min(avail.w / size.w, avail.h / size.h);
+}
+
+function updateZoomUI(scale) {
+  var pct = Math.round(scale * 100);
+  var label = document.getElementById('zoom-pct');
+  var slider = document.getElementById('zoom-slider');
+  if (label) label.textContent = pct + '%';
+  if (slider && zoomMode !== 'manual') slider.value = Math.min(200, Math.max(50, pct));
+  if (slider && zoomMode === 'manual') slider.value = zoomManual;
+  document.querySelectorAll('[data-zoom-mode]').forEach(function (btn) {
+    btn.classList.toggle('active', btn.getAttribute('data-zoom-mode') === zoomMode);
+  });
+}
+
+function applySlideZoom() {
+  var wrap = getActiveWrap();
+  if (!wrap) return;
+  var size = measureWrap(wrap);
+  var scale = zoomManual / 100;
+  if (zoomMode !== 'manual') {
+    scale = computeAutoScale(zoomMode);
+    zoomManual = Math.round(scale * 100);
+  }
+  scale = Math.max(0.5, Math.min(2, scale));
+  wrap.style.transform = 'scale(' + scale + ')';
+  wrap.style.transformOrigin = 'top center';
+  wrap.style.marginBottom = scale > 1 ? (size.h * (scale - 1)) + 'px' : '0';
+  updateZoomUI(scale);
+}
+
+function setZoomMode(mode) {
+  zoomMode = mode;
+  try { localStorage.setItem(ZOOM_MODE_KEY, mode); } catch (e) {}
+  applySlideZoom();
+}
+
+function setZoomManual(pct) {
+  zoomMode = 'manual';
+  zoomManual = parseInt(pct, 10) || 100;
+  try {
+    localStorage.setItem(ZOOM_MODE_KEY, 'manual');
+    localStorage.setItem(ZOOM_MANUAL_KEY, String(zoomManual));
+  } catch (e) {}
+  applySlideZoom();
+}
+
+function resetSlideScroll() {
+  var slide = getActiveSlide();
+  if (slide) slide.scrollTop = 0;
+}
+
+function initZoom() {
+  try { zoomMode = localStorage.getItem(ZOOM_MODE_KEY) || 'page'; } catch (e) {}
+  try { zoomManual = parseInt(localStorage.getItem(ZOOM_MANUAL_KEY), 10) || 100; } catch (e) {}
+  var slider = document.getElementById('zoom-slider');
+  if (slider) slider.value = zoomManual;
+  applySlideZoom();
+  var resizeTimer;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(applySlideZoom, 120);
+  });
+}
+// ══════════════════════════════════
+// SHARED HELPERS & QUIZ SYSTEM
+// ══════════════════════════════════
+function showEl(id){var el=document.getElementById(id);if(el)el.classList.add('show');}
+function hideEl(id){var el=document.getElementById(id);if(el)el.classList.remove('show');}
+function setInfo(t){document.getElementById('info-bar').textContent=t;}
+function setCounter(t){document.getElementById('counter').textContent=t;}
+
+function hlCode(blockId,lineNum,warn){
+  var block=document.getElementById(blockId);
+  if(!block)return;
+  block.querySelectorAll('.code-line').forEach(function(ln){
+    ln.classList.remove('hl','hl-warn','hl-ptr');
+  });
+  var line=block.querySelector('[data-line="'+lineNum+'"]');
+  if(line)line.classList.add(warn?'hl-warn':(warn===2?'hl-ptr':'hl'));
+}
+
+function clearHl(blockId){
+  var block=document.getElementById(blockId);
+  if(!block)return;
+  block.querySelectorAll('.code-line').forEach(function(ln){
+    ln.classList.remove('hl','hl-warn','hl-ptr');
+  });
+}
+
+function lockCode(id){
+  var el=document.getElementById(id);
+  if(el){el.classList.add('locked');el.classList.remove('revealed');}
+}
+
+function unlockCode(id){
+  var el=document.getElementById(id);
+  if(el){el.classList.remove('locked');el.classList.add('revealed');}
+}
+
+function resetQuiz(quizId){
+  var box=document.getElementById(quizId);
+  if(!box)return;
+  box.querySelectorAll('.quiz-btn').forEach(function(b){
+    b.disabled=false;b.classList.remove('correct','wrong');
+  });
+  var fb=box.querySelector('.quiz-fb');
+  if(fb){fb.textContent='';fb.className='quiz-fb';}
+}
+
+function checkQuiz(quizId,correctIdx,codeIds,cb,btn){
+  var box=document.getElementById(quizId);
+  if(!box||!btn)return;
+  var btns=box.querySelectorAll('.quiz-btn');
+  var idx=Array.prototype.indexOf.call(btns,btn);
+  var fb=box.querySelector('.quiz-fb');
+  if(idx<0||idx!==correctIdx){
+    btn.classList.add('wrong');
+    if(fb){fb.textContent='Not quite — read the hint and try again';fb.className='quiz-fb warn';}
+    setTimeout(function(){btn.classList.remove('wrong');},400);
+    return;
+  }
+  btns.forEach(function(b){b.disabled=true;});
+  btn.classList.add('correct');
+  if(fb){
+    if(codeIds){fb.textContent='✓ Correct — code revealed below';fb.className='quiz-fb ok';}
+    else if(cb){fb.textContent='✓ Correct!';}
+    else{fb.textContent='✓ Correct!';}
+    fb.className='quiz-fb ok';
+  }
+  if(codeIds){
+    (Array.isArray(codeIds)?codeIds:[codeIds]).forEach(unlockCode);
+  }
+  if(cb)cb();
+}
+
+function switchTab(group,paneId,btn){
+  document.querySelectorAll('[data-tab-group="'+group+'"]').forEach(function(p){
+    p.style.display='none';
+  });
+  var pane=document.getElementById(paneId);
+  if(pane)pane.style.display='block';
+  document.querySelectorAll('[data-tab-btn="'+group+'"]').forEach(function(b){
+    b.classList.toggle('active',b===btn);
+  });
+}
+
+function rewindSteps(arr,stepVar,resetFn){
+  if(window[stepVar]>1){window[stepVar]--;resetFn();for(var i=0;i<window[stepVar];i++)arr[i]();return true;}
+  return false;
+}
+
+// ══════════════════════════════════
+// CODE BLOCK CHROME (theme + line numbers)
+// ══════════════════════════════════
+var codeTheme='dark';
+var codeShowLines=true;
+var CODE_THEME_KEY='cpp-code-theme';
+var CODE_LINES_KEY='cpp-code-lines';
+
+var CODE_ICON_SUN='<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 2v1.2M8 12.8V14M2 8h1.2M12.8 8H14M3.8 3.8l.85.85M11.35 11.35l.85.85M3.8 12.2l.85-.85M11.35 4.65l.85-.85" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+var CODE_ICON_MOON='<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.2 10.4a5.2 5.2 0 01-6.6-6.6A5.2 5.2 0 1012.2 10.4z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+var CODE_ICON_LN='<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5h1.2v1.2H3.5V3.5zm0 4h1.2v1.2H3.5V7.5zm0 4h1.2v1.2H3.5v-1.2z" fill="currentColor"/><path d="M7.5 4.2h6M7.5 8h6M7.5 11.8h6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/></svg>';
+var CODE_ICON_EDIT='<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M11.1 2.5a1.2 1.2 0 011.7 1.7l-7.2 7.2-2.3.6.6-2.3 7.2-7.2z" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/></svg>';
+var CODE_EDIT_KEY='struct-op-code:';
+
+function codeThemeIcon(theme){
+  return theme==='dark'?CODE_ICON_SUN:CODE_ICON_MOON;
+}
+
+function prepareCodeBlockLines(block){
+  if(block.dataset.linesPrepared)return;
+  var existing=block.querySelectorAll('.code-line');
+  if(existing.length){
+    var n=0;
+    existing.forEach(function(line){
+      if(!line.hasAttribute('data-line')){
+        n++;
+        line.setAttribute('data-line',String(n));
+      }
+    });
+    block.dataset.linesPrepared='1';
+    return;
+  }
+  var parts=[];
+  block.childNodes.forEach(function(n){
+    if(n.nodeType===1&&n.classList&&n.classList.contains('code-block-toolbar'))return;
+    if(n.nodeType===1)parts.push(n.outerHTML);
+    else if(n.nodeType===3)parts.push(n.textContent);
+  });
+  var html=parts.join('').trim();
+  if(!html){block.dataset.linesPrepared='1';return;}
+  var lines=html.split('\n');
+  var n=0;
+  var wrapped=lines.map(function(line){
+    if(line.trim()===''){
+      n++;
+      return '<span class="code-line" data-line="'+n+'"></span>';
+    }
+    n++;
+    return '<span class="code-line" data-line="'+n+'">'+line+'</span>';
+  }).join('');
+  var toolbar=block.querySelector('.code-block-toolbar');
+  block.textContent='';
+  if(toolbar)block.appendChild(toolbar);
+  block.insertAdjacentHTML('beforeend',wrapped);
+  block.dataset.linesPrepared='1';
+}
+
+function applyCodeTheme(theme){
+  codeTheme=theme;
+  try{localStorage.setItem(CODE_THEME_KEY,theme);}catch(e){}
+  document.querySelectorAll('.code-block').forEach(function(block){
+    block.classList.toggle('theme-light',theme==='light');
+    var btn=block.querySelector('.code-theme-btn');
+    if(btn){
+      btn.innerHTML=codeThemeIcon(theme);
+      btn.title=theme==='dark'?'Light code theme':'Dark code theme';
+      btn.setAttribute('aria-label',btn.title);
+      btn.setAttribute('aria-pressed',theme==='light'?'true':'false');
+    }
+  });
+}
+
+function applyCodeLines(show){
+  codeShowLines=!!show;
+  try{localStorage.setItem(CODE_LINES_KEY,show?'1':'0');}catch(e){}
+  document.querySelectorAll('.code-block').forEach(function(block){
+    block.classList.toggle('show-lines',codeShowLines);
+    var btn=block.querySelector('.code-ln-btn');
+    if(btn){
+      btn.classList.toggle('active',codeShowLines);
+      btn.title=codeShowLines?'Hide line numbers':'Show line numbers';
+      btn.setAttribute('aria-label',btn.title);
+      btn.setAttribute('aria-pressed',codeShowLines?'true':'false');
+    }
+  });
+}
+
+function toggleCodeTheme(){
+  applyCodeTheme(codeTheme==='dark'?'light':'dark');
+}
+
+function toggleCodeLines(){
+  applyCodeLines(!codeShowLines);
+}
+
+function codeEditStorageKey(blockId){return CODE_EDIT_KEY+blockId;}
+
+function codeEditGetOverride(blockId){
+  try{return localStorage.getItem(codeEditStorageKey(blockId));}catch(e){return null;}
+}
+
+function codeEditSetOverride(blockId,text){
+  try{localStorage.setItem(codeEditStorageKey(blockId),text);}catch(e){}
+}
+
+function codeEditClearOverride(blockId){
+  try{localStorage.removeItem(codeEditStorageKey(blockId));}catch(e){}
+}
+
+function escapeCodeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function extractBlockPlainText(block){
+  var lines=block.querySelectorAll('.code-line');
+  if(lines.length){
+    return Array.prototype.map.call(lines,function(ln){return ln.textContent;}).join('\n');
+  }
+  var parts=[];
+  block.childNodes.forEach(function(n){
+    if(n.nodeType!==1)return;
+    if(n.classList&&(n.classList.contains('code-block-toolbar')||n.classList.contains('code-block-editor')))return;
+    parts.push(n.textContent);
+  });
+  return parts.join('\n').replace(/^\n+|\n+$/g,'');
+}
+
+function plainToCodeLinesHtml(text){
+  var lines=text.split('\n');
+  var n=0;
+  return lines.map(function(line){
+    n++;
+    if(line==='')return '<span class="code-line" data-line="'+n+'"></span>';
+    return '<span class="code-line" data-line="'+n+'">'+escapeCodeHtml(line)+'</span>';
+  }).join('');
+}
+
+function getCodeBlockToolbar(block){
+  return block.querySelector('.code-block-toolbar');
+}
+
+function clearCodeBlockBody(block){
+  var toolbar=getCodeBlockToolbar(block);
+  var editor=block.querySelector('.code-block-editor');
+  Array.prototype.slice.call(block.childNodes).forEach(function(n){
+    if(n!==toolbar&&n!==editor)block.removeChild(n);
+  });
+}
+
+function setBlockPlainContent(block,text){
+  clearCodeBlockBody(block);
+  block.insertAdjacentHTML('beforeend',plainToCodeLinesHtml(text));
+  delete block.dataset.linesPrepared;
+}
+
+function snapshotBlockDefault(block){
+  if(!block.id||block.dataset.defaultPlain)return;
+  block.dataset.defaultPlain=extractBlockPlainText(block);
+}
+
+function applyCodeOverride(block){
+  if(!block.id)return;
+  var saved=codeEditGetOverride(block.id);
+  if(saved===null)return;
+  setBlockPlainContent(block,saved);
+}
+
+function updateCodeEditBtn(block){
+  var btn=block.querySelector('.code-edit-btn');
+  if(!btn||!block.id)return;
+  var customized=codeEditGetOverride(block.id)!==null;
+  btn.classList.toggle('has-override',customized);
+  btn.title=customized?'Edit code (customized — saved in browser)':'Edit code';
+  btn.setAttribute('aria-label',btn.title);
+}
+
+function codeEditClose(block){
+  block.classList.remove('code-block-editing');
+  var editor=block.querySelector('.code-block-editor');
+  if(editor)editor.remove();
+  var toolbar=getCodeBlockToolbar(block);
+  if(toolbar)toolbar.style.display='';
+}
+
+function codeEditSave(block,ta){
+  var text=ta.value;
+  codeEditSetOverride(block.id,text);
+  setBlockPlainContent(block,text);
+  codeEditClose(block);
+  updateCodeEditBtn(block);
+  setInfo('Code saved — persists on refresh');
+}
+
+function codeEditRevert(block){
+  codeEditClearOverride(block.id);
+  setBlockPlainContent(block,block.dataset.defaultPlain||'');
+  codeEditClose(block);
+  updateCodeEditBtn(block);
+  setInfo('Code reverted to original');
+}
+
+function codeEditOpen(block){
+  if(!block.id||block.classList.contains('code-block-editing'))return;
+  snapshotBlockDefault(block);
+  var current=extractBlockPlainText(block);
+  block.classList.add('code-block-editing');
+  var toolbar=getCodeBlockToolbar(block);
+  if(toolbar)toolbar.style.display='none';
+
+  var editor=document.createElement('div');
+  editor.className='code-block-editor';
+
+  var ta=document.createElement('textarea');
+  ta.className='code-edit-textarea';
+  ta.value=current;
+  ta.spellcheck=false;
+  ta.setAttribute('aria-label','Edit code for '+block.id);
+
+  var actions=document.createElement('div');
+  actions.className='code-edit-actions';
+
+  var saveBtn=document.createElement('button');
+  saveBtn.type='button';
+  saveBtn.className='code-edit-save';
+  saveBtn.textContent='Save';
+  saveBtn.onclick=function(e){e.stopPropagation();codeEditSave(block,ta);};
+
+  var cancelBtn=document.createElement('button');
+  cancelBtn.type='button';
+  cancelBtn.className='code-edit-cancel';
+  cancelBtn.textContent='Cancel';
+  cancelBtn.onclick=function(e){e.stopPropagation();codeEditClose(block);};
+
+  actions.appendChild(saveBtn);
+  actions.appendChild(cancelBtn);
+  if(codeEditGetOverride(block.id)!==null){
+    var revertBtn=document.createElement('button');
+    revertBtn.type='button';
+    revertBtn.className='code-edit-revert';
+    revertBtn.textContent='Revert';
+    revertBtn.onclick=function(e){e.stopPropagation();codeEditRevert(block);};
+    actions.appendChild(revertBtn);
+  }
+
+  ta.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){e.preventDefault();codeEditClose(block);}
+    if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();codeEditSave(block,ta);}
+  });
+
+  editor.appendChild(ta);
+  editor.appendChild(actions);
+  block.appendChild(editor);
+  ta.focus();
+}
+
+function attachCodeEditBtn(block,toolbar){
+  if(!block.id||toolbar.querySelector('.code-edit-btn'))return;
+  var editBtn=document.createElement('button');
+  editBtn.type='button';
+  editBtn.className='code-edit-btn';
+  editBtn.innerHTML=CODE_ICON_EDIT;
+  editBtn.onclick=function(e){e.stopPropagation();codeEditOpen(block);};
+  toolbar.insertBefore(editBtn,toolbar.firstChild);
+  updateCodeEditBtn(block);
+}
+
+function initCodeBlocks(){
+  try{codeTheme=localStorage.getItem(CODE_THEME_KEY)||'dark';}catch(e){}
+  try{codeShowLines=localStorage.getItem(CODE_LINES_KEY)!=='0';}catch(e){}
+  document.querySelectorAll('.code-block').forEach(function(block){
+    prepareCodeBlockLines(block);
+    snapshotBlockDefault(block);
+    applyCodeOverride(block);
+    var toolbar=block.querySelector('.code-block-toolbar');
+    if(!toolbar){
+      toolbar=document.createElement('div');
+      toolbar.className='code-block-toolbar';
+      var lnBtn=document.createElement('button');
+      lnBtn.type='button';
+      lnBtn.className='code-ln-btn';
+      lnBtn.innerHTML=CODE_ICON_LN;
+      lnBtn.onclick=function(e){e.stopPropagation();toggleCodeLines();};
+      var themeBtn=document.createElement('button');
+      themeBtn.type='button';
+      themeBtn.className='code-theme-btn';
+      themeBtn.onclick=function(e){e.stopPropagation();toggleCodeTheme();};
+      toolbar.appendChild(lnBtn);
+      toolbar.appendChild(themeBtn);
+      block.insertBefore(toolbar,block.firstChild);
+    }
+    attachCodeEditBtn(block,toolbar);
+  });
+  applyCodeTheme(codeTheme);
+  applyCodeLines(codeShowLines);
+}
+
+function initCodeBlockThemes(){initCodeBlocks();}
+var S2=[
+  function(){showEl('s2-p1');setInfo('struct vs class — note the default access difference');},
+  function(){showEl('s2-p2');setInfo('Structs shine when grouping related data with light behavior');}
+];
+function resetS2(){hideEl('s2-p2');showEl('s2-p1');s2Step=0;}
+
+var S3=[
+  function(){
+    showEl('s3-p1');lockCode('s3-main');resetQuiz('s3-quiz');
+    hlCode('s3-code',10);setInfo('Study Person — answer quiz to reveal main()');
+  },
+  function(){showEl('s3-p2');setInfo('Constructor + printInfo() produce formatted output');}
+];
+function resetS3(){
+  hideEl('s3-p2');showEl('s3-p1');lockCode('s3-main');resetQuiz('s3-quiz');
+  clearHl('s3-code');s3Step=0;
+}
+
+var S4=[
+  function(){showEl('s4-p1');hlCode('s4-code',1);setInfo('Constructor name matches struct — no return type');},
+  function(){showEl('s4-p2');setInfo('Constructors define how objects are initialized');}
+];
+function resetS4(){hideEl('s4-p2');showEl('s4-p1');clearHl('s4-code');s4Step=0;}
+
+var S5=[
+  function(){
+    showEl('s5-p1');lockCode('s5-err');resetQuiz('s5-quiz');
+    setInfo('Quiz: predict compiler behavior without constructor');
+  },
+  function(){
+    showEl('s5-p2');lockCode('s5-fix');resetQuiz('s5-quiz2');
+    setInfo('Second quiz reveals the fix');
+  }
+];
+function resetS5(){
+  hideEl('s5-p2');showEl('s5-p1');lockCode('s5-err');lockCode('s5-fix');
+  resetQuiz('s5-quiz');resetQuiz('s5-quiz2');s5Step=0;
+}
+
+var S6=[
+  function(){showEl('s6-p1');s6ShowCtor('default');hlCode('s6-code',1);setInfo('Compiler-generated default ctor when none is written');},
+  function(){showEl('s6-p2');setInfo('Toggle tabs — Option 2 (all params) is preferred');}
+];
+function s6ShowCtor(mode){
+  var def=document.getElementById('s6-ctor-default');
+  var param=document.getElementById('s6-ctor-param');
+  var isParam=mode==='param';
+  if(def)def.style.display=isParam?'none':'block';
+  if(param)param.style.display=isParam?'block':'none';
+}
+function s6SwitchTab(paneId,btn){
+  switchTab('s6',paneId,btn);
+  var isB=paneId==='s6-tab-b';
+  s6ShowCtor(isB?'param':'default');
+  clearHl('s6-code');
+  hlCode('s6-code',1);
+  setInfo(isB?'Parameterized ctor — object valid immediately':'Default ctor then assign — works but incomplete briefly');
+}
+function resetS6(){
+  hideEl('s6-p2');showEl('s6-p1');clearHl('s6-code');s6Step=0;
+  s6ShowCtor('default');
+  var tabA=document.querySelector('[data-tab-btn="s6"]');
+  if(tabA){switchTab('s6','s6-tab-a',tabA);}
+}
+var S7=[
+  function(){
+    showEl('s7-p1');lockCode('s7-fix');
+    ['s7-this','s7-rename'].forEach(function(id){var e=document.getElementById(id);if(e){e.style.display='none';lockCode(id);}});
+    resetQuiz('s7-quiz');
+    hlCode('s7-bad',1,1);setInfo('Find the duplicate parameter name');
+  },
+  function(){
+    showEl('s7-p2');resetQuiz('s7-quiz2');
+    setInfo('Pick a fix style — each reveals a different valid solution');
+  }
+];
+function resetS7(){
+  hideEl('s7-p2');showEl('s7-p1');lockCode('s7-fix');
+  ['s7-this','s7-rename'].forEach(function(id){var e=document.getElementById(id);if(e){e.style.display='none';lockCode(id);}});
+  resetQuiz('s7-quiz');resetQuiz('s7-quiz2');clearHl('s7-bad');s7Step=0;
+}
+
+function s7Quiz2(idx,btn){
+  var ids=['s7-fix','s7-this','s7-rename'];
+  ids.forEach(function(id,i){
+    var e=document.getElementById(id);
+    if(e){e.style.display=i===idx?'block':'none';if(i===idx)unlockCode(id);else lockCode(id);}
+  });
+  var box=document.getElementById('s7-quiz2');
+  if(box){
+    box.querySelectorAll('.quiz-btn').forEach(function(b){b.disabled=true;});
+    var fb=box.querySelector('.quiz-fb');
+    if(fb){fb.textContent='✓ Valid fix — see solution below';fb.className='quiz-fb ok';}
+  }
+  btn.classList.add('correct');
+  setInfo('All three styles are valid — initializer list is preferred');
+}
+
+var S8=[
+  function(){
+    showEl('s8-p1');s8ShowCtor('assign');
+    hlCode('s8-code',5,2);hlCode('s8-code',6,2);
+    setInfo('this-> disambiguates member from parameter');
+  },
+  function(){
+    showEl('s8-p2');resetQuiz('s8-quiz');
+    setInfo('Pick a style — the struct above updates to match');
+  }
+];
+function s8ShowCtor(mode){
+  var isInit=mode==='init';
+  document.querySelectorAll('.s8-assign-line').forEach(function(el){
+    el.style.display=isInit?'none':'block';
+  });
+  ['s8-ctor-init','s8-ctor-init-list'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.style.display=isInit?'block':'none';
+  });
+}
+function s8Quiz(idx,btn){
+  var box=document.getElementById('s8-quiz');
+  if(!box)return;
+  var isInit=idx===0;
+  s8ShowCtor(isInit?'init':'assign');
+  clearHl('s8-code');
+  if(isInit)hlCode('s8-code',5);
+  else{hlCode('s8-code',5,2);hlCode('s8-code',6,2);}
+  box.querySelectorAll('.quiz-btn').forEach(function(b){b.disabled=true;});
+  btn.classList.add('correct');
+  var fb=box.querySelector('.quiz-fb');
+  var hint=document.getElementById('s8-hint');
+  if(isInit){
+    if(fb){fb.textContent='✓ Direct initialization — preferred';fb.className='quiz-fb ok';}
+    if(hint){hint.textContent='Initializer list — members initialized directly (preferred)';hint.className='trace-bar ok';}
+    setInfo('Initializer list — no this-> needed when names match members');
+  }else{
+    if(fb){fb.textContent='✓ Equivalent — assigns after default-init';fb.className='quiz-fb ok';}
+    if(hint){hint.textContent='Body assignment works — initializer list is still preferred';hint.className='trace-bar warn';}
+    setInfo('this-> assignment — disambiguates shadowed parameter names');
+  }
+}
+function resetS8(){
+  hideEl('s8-p2');showEl('s8-p1');s8ShowCtor('assign');
+  resetQuiz('s8-quiz');clearHl('s8-code');
+  var hint=document.getElementById('s8-hint');
+  if(hint){hint.textContent='Initializer list is preferred — required for const/reference members';hint.className='trace-bar ok';}
+  s8Step=0;
+}
+
+var S9=[
+  function(){showEl('s9-p1');setInfo('Case study — sensitive fields grouped in Person');},
+  function(){showEl('s9-p2');lockCode('s9-hint');resetQuiz('s9-quiz');setInfo('Quiz: positional constructor args are dangerous');}
+];
+function resetS9(){hideEl('s9-p2');showEl('s9-p1');lockCode('s9-hint');resetQuiz('s9-quiz');s9Step=0;}
+
+var S10=[
+  function(){showEl('s10-p1');hlCode('s10-code',1,1);hlCode('s10-code',2);setInfo('private vs public regions in a struct');},
+  function(){showEl('s10-p2');lockCode('s10-ex');resetQuiz('s10-quiz');setInfo('Quiz: can main touch private members?');}
+];
+function resetS10(){hideEl('s10-p2');showEl('s10-p1');lockCode('s10-ex');resetQuiz('s10-quiz');clearHl('s10-code');s10Step=0;}
+var S11=[
+  function(){
+    showEl('s11-p1');lockCode('s11-code');resetQuiz('s11-quiz');
+    setInfo('WARNING slide — find the getPhone() bug');
+  },
+  function(){showEl('s11-p2');setInfo('I/O inside structs and shadowed variables are code smells');}
+];
+function resetS11(){hideEl('s11-p2');showEl('s11-p1');lockCode('s11-code');resetQuiz('s11-quiz');s11Step=0;}
+
+var S12=[
+  function(){
+    showEl('s12-p1');lockCode('s12-code');lockCode('s12-out');resetQuiz('s12-quiz');
+    setInfo('Quiz: when does ~GameCard run?');
+  },
+  function(){showEl('s12-p2');setInfo('RAII — Resource Acquisition Is Initialization');}
+];
+function resetS12(){
+  hideEl('s12-p2');showEl('s12-p1');lockCode('s12-code');lockCode('s12-out');
+  resetQuiz('s12-quiz');s12Step=0;
+}
+
+var S13=[
+  function(){
+    showEl('s13-p1');lockCode('s13-reveal');resetQuiz('s13-quiz');
+    hlCode('s13-code',1);setInfo('Heap allocation — quiz about missing delete');
+  },
+  function(){showEl('s13-p2');setInfo('Prefer unique_ptr to avoid manual delete');}
+];
+function resetS13(){
+  hideEl('s13-p2');showEl('s13-p1');lockCode('s13-reveal');resetQuiz('s13-quiz');
+  clearHl('s13-code');s13Step=0;
+}
+
+var S14=[
+  function(){showEl('s14-p1');setInfo('Can we print a GameCard with cout << card ?');},
+  function(){showEl('s14-p2');lockCode('s14-out');resetQuiz('s14-quiz');setInfo('Quiz reveals desired output format');}
+];
+function resetS14(){hideEl('s14-p2');showEl('s14-p1');lockCode('s14-out');resetQuiz('s14-quiz');s14Step=0;}
+
+var S15=[
+  function(){
+    showEl('s15-p1');resetQuiz('s15-quiz');
+    setInfo('void operator<< prints once — but chaining endl fails');
+  },
+  function(){
+    showEl('s15-p2');unlockCode('s15-fix');
+    setInfo('Fix: return ostream& and return COUT');
+  }
+];
+function resetS15(){
+  hideEl('s15-p2');showEl('s15-p1');lockCode('s15-fix');
+  resetQuiz('s15-quiz');s15Step=0;
+}
+var S16=[
+  function(){
+    showEl('s16-p1');lockCode('s16-out');resetQuiz('s16-quiz');
+    setInfo('Read GameCard + main — predict what cout << card prints');
+  },
+  function(){showEl('s16-p2');setInfo('operator<< builds a formatted table from the map');}
+];
+function resetS16(){
+  hideEl('s16-p2');showEl('s16-p1');lockCode('s16-out');
+  resetQuiz('s16-quiz');s16Step=0;
+}
+
+var S17_STEP_COUNT=7;
+var s17Revealed=0;
+var S17_MASKED=['?? (??, ??)','??','for(??, ??)','??','for(??, ??)','??','??'];
+var S17_REVEALED=[
+  'operator+(<span class="kw">const</span> <span class="ty">GameCard</span>&amp; card0, <span class="kw">const</span> <span class="ty">GameCard</span>&amp; card1)',
+  '<span class="ty">GameCard</span> card;',
+  '<span class="kw">for</span> (<span class="kw">const auto</span>&amp; [game, score] : card0.games)',
+  'card.games[game] = score; card.score += score;',
+  '<span class="kw">for</span> (<span class="kw">const auto</span>&amp; [game, score] : card1.games)',
+  'card.games[game] = score; card.score += score;',
+  '<span class="kw">return</span> card;'
+];
+
+function s17SkeletonHtml(){
+  return '<span class="code-line"><span class="ty">GameCard</span> <span class="reveal-target" id="s17-r1">?? (??, ??)</span> {</span>'+
+    '<span class="code-line">    <span class="reveal-target" id="s17-r2">??</span></span>'+
+    '<span class="code-line">    <span class="reveal-target" id="s17-r3">for(??, ??)</span></span>'+
+    '<span class="code-line">        <span class="reveal-target" id="s17-r4">??</span></span>'+
+    '<span class="code-line"></span>'+
+    '<span class="code-line">    <span class="reveal-target" id="s17-r5">for(??, ??)</span></span>'+
+    '<span class="code-line">        <span class="reveal-target" id="s17-r6">??</span></span>'+
+    '<span class="code-line">    <span class="reveal-target" id="s17-r7">??</span></span>'+
+    '<span class="code-line">}</span>';
+}
+
+function s17EnsureSkeleton(){
+  var block=document.getElementById('s17-op');
+  if(!block||document.getElementById('s17-r1'))return;
+  var toolbar=block.querySelector('.code-block-toolbar');
+  block.innerHTML='';
+  if(toolbar)block.appendChild(toolbar);
+  block.insertAdjacentHTML('beforeend',s17SkeletonHtml());
+  delete block.dataset.linesPrepared;
+}
+
+function s17UpdateUI(){
+  s17EnsureSkeleton();
+  var i,el,btn;
+  for(i=1;i<=S17_STEP_COUNT;i++){
+    el=document.getElementById('s17-r'+i);
+    if(el){
+      if(i<=s17Revealed){
+        el.innerHTML=S17_REVEALED[i-1];
+        el.classList.remove('reveal-target');
+      }else{
+        el.textContent=S17_MASKED[i-1];
+        el.classList.add('reveal-target');
+      }
+    }
+    btn=document.getElementById('s17-step-'+i);
+    if(btn){
+      btn.classList.toggle('done',i<=s17Revealed);
+      btn.classList.toggle('active-next',i===s17Revealed+1);
+      btn.classList.toggle('correct',i<=s17Revealed);
+      btn.disabled=i>s17Revealed+1;
+    }
+  }
+  if(s17Revealed>=S17_STEP_COUNT)unlockCode('s17-op');
+  else lockCode('s17-op');
+  var trace=document.getElementById('s17-trace');
+  if(trace){
+    if(s17Revealed>=S17_STEP_COUNT){
+      trace.textContent='✓ operator+ complete — merged library matches the console table above';
+      trace.className='trace-bar ok';
+    }else{
+      trace.textContent='Click Step '+(s17Revealed+1)+' to reveal the next line';
+      trace.className='trace-bar';
+    }
+  }
+}
+
+function s17ResetReveal(){
+  s17Revealed=0;
+  var block=document.getElementById('s17-op');
+  if(block){
+    var toolbar=block.querySelector('.code-block-toolbar');
+    block.innerHTML='';
+    if(toolbar)block.appendChild(toolbar);
+    block.insertAdjacentHTML('beforeend',s17SkeletonHtml());
+    delete block.dataset.linesPrepared;
+  }
+  lockCode('s17-op');
+  document.querySelectorAll('.s17-step-btn').forEach(function(b){
+    b.classList.remove('correct','wrong','done','active-next');
+  });
+  s17UpdateUI();
+}
+
+function s17GoStep(n,btn){
+  if(n!==s17Revealed+1){
+    if(btn){btn.classList.add('wrong');setTimeout(function(){btn.classList.remove('wrong');},400);}
+    var trace=document.getElementById('s17-trace');
+    if(trace){trace.textContent='Reveal in order — next is step '+(s17Revealed+1);trace.className='trace-bar warn';}
+    return;
+  }
+  s17Revealed=n;
+  s17UpdateUI();
+  if(n===S17_STEP_COUNT)setInfo('operator+ merges both maps — card0 + card1');
+  else setInfo('Step '+n+' revealed in operator+');
+}
+
+var S17=[
+  function(){
+    showEl('s17-p1');
+    s17ResetReveal();
+    setInfo('Click each step on the right to build operator+ line by line');
+  }
+];
+function resetS17(){showEl('s17-p1');s17ResetReveal();s17Step=0;}
+
+function s18RevealNo(){
+  document.querySelectorAll('#s18-grid .op-item').forEach(function(el){
+    var op=el.getAttribute('data-op');
+    if(op==='dot'){el.className='op-item no';el.querySelector('.status').textContent='NO';}
+    else{el.className='op-item yes';el.querySelector('.status').textContent='YES';}
+  });
+  setInfo('. and :: cannot be overloaded — most others can');
+}
+
+var S18=[
+  function(){
+    showEl('s18-p1');resetQuiz('s18-quiz');
+    document.querySelectorAll('#s18-grid .op-item').forEach(function(el){
+      el.className='op-item unk';el.querySelector('.status').textContent='?';
+    });
+    setInfo('Chef quiz — which operators are forbidden?');
+  },
+  function(){
+    showEl('s18-p2');lockCode('s18-plus-eq');resetQuiz('s18-quiz2');
+    setInfo('operator+= must return reference for chaining');
+  }
+];
+function resetS18(){
+  hideEl('s18-p2');showEl('s18-p1');lockCode('s18-plus-eq');
+  resetQuiz('s18-quiz');resetQuiz('s18-quiz2');s18Step=0;
+}
+
+var S19_STEP_COUNT=4;
+var s19Revealed=0;
+var s19QuizDone=false;
+var S19_MASKED=['?? (??, ??)','for(??, ??)','??','??'];
+var S19_REVEALED=[
+  'operator-=(<span class="ty">GameCard</span>&amp; card0, <span class="kw">const</span> <span class="ty">GameCard</span>&amp; card1)',
+  '<span class="kw">for</span> (<span class="kw">const auto</span>&amp; [game, sc] : card1.games)',
+  'card0.games.erase(game);',
+  '<span class="kw">return</span> card0;'
+];
+
+function s19SkeletonHtml(){
+  return '<span class="code-line"><span class="cm">// operator-= — implement to make main() work</span></span>'+
+    '<span class="code-line"><span class="ty">GameCard</span>&amp; <span class="reveal-target" id="s19-r1">?? (??, ??)</span> {</span>'+
+    '<span class="code-line">    <span class="reveal-target" id="s19-r2">for(??, ??)</span></span>'+
+    '<span class="code-line">        <span class="reveal-target" id="s19-r3">??</span></span>'+
+    '<span class="code-line">    <span class="reveal-target" id="s19-r4">??</span></span>'+
+    '<span class="code-line">}</span>';
+}
+
+function s19EnsureSkeleton(){
+  var block=document.getElementById('s19-sig');
+  if(!block||document.getElementById('s19-r1'))return;
+  var toolbar=block.querySelector('.code-block-toolbar');
+  block.innerHTML='';
+  if(toolbar)block.appendChild(toolbar);
+  block.insertAdjacentHTML('beforeend',s19SkeletonHtml());
+  delete block.dataset.linesPrepared;
+}
+
+function s19UpdateUI(){
+  s19EnsureSkeleton();
+  var i,el,btn;
+  for(i=1;i<=S19_STEP_COUNT;i++){
+    el=document.getElementById('s19-r'+i);
+    if(el){
+      if(i<=s19Revealed){
+        el.innerHTML=S19_REVEALED[i-1];
+        el.classList.remove('reveal-target');
+      }else{
+        el.textContent=S19_MASKED[i-1];
+        el.classList.add('reveal-target');
+      }
+    }
+    btn=document.getElementById('s19-step-'+i);
+    if(btn){
+      btn.classList.toggle('done',i<=s19Revealed);
+      btn.classList.toggle('active-next',s19QuizDone&&i===s19Revealed+1);
+      btn.classList.toggle('correct',i<=s19Revealed);
+      btn.disabled=!s19QuizDone||i>s19Revealed+1;
+    }
+  }
+  if(s19Revealed>=S19_STEP_COUNT)unlockCode('s19-sig');
+  else lockCode('s19-sig');
+  var trace=document.getElementById('s19-trace');
+  if(trace){
+    if(!s19QuizDone){
+      trace.textContent='Answer the quiz — then click Step 1';
+      trace.className='trace-bar';
+    }else if(s19Revealed>=S19_STEP_COUNT){
+      trace.textContent='✓ Full operator-= revealed — removes matching games from card0';
+      trace.className='trace-bar ok';
+    }else{
+      trace.textContent='Click Step '+(s19Revealed+1)+' to reveal the next line';
+      trace.className='trace-bar';
+    }
+  }
+}
+
+function s19ResetReveal(){
+  s19Revealed=0;
+  s19QuizDone=false;
+  var steps=document.getElementById('s19-steps');
+  if(steps)steps.classList.remove('quiz-done');
+  var block=document.getElementById('s19-sig');
+  if(block){
+    var toolbar=block.querySelector('.code-block-toolbar');
+    block.innerHTML='';
+    if(toolbar)block.appendChild(toolbar);
+    block.insertAdjacentHTML('beforeend',s19SkeletonHtml());
+    delete block.dataset.linesPrepared;
+  }
+  lockCode('s19-sig');
+  document.querySelectorAll('#s19-steps .s17-step-btn').forEach(function(b){
+    b.classList.remove('correct','wrong','done','active-next');
+  });
+  s19UpdateUI();
+}
+
+function s19OnQuizCorrect(){
+  s19QuizDone=true;
+  var steps=document.getElementById('s19-steps');
+  if(steps)steps.classList.add('quiz-done');
+  s19Revealed=0;
+  s19UpdateUI();
+  setInfo('Quiz correct — click each step to build operator-');
+}
+
+function s19GoStep(n,btn){
+  if(!s19QuizDone)return;
+  if(n!==s19Revealed+1){
+    if(btn){btn.classList.add('wrong');setTimeout(function(){btn.classList.remove('wrong');},400);}
+    var trace=document.getElementById('s19-trace');
+    if(trace){trace.textContent='Reveal in order — next is step '+(s19Revealed+1);trace.className='trace-bar warn';}
+    return;
+  }
+  s19Revealed=n;
+  s19UpdateUI();
+  if(n===S19_STEP_COUNT)setInfo('operator-= removes games present in card1 from card0');
+  else setInfo('Step '+n+' revealed in operator-');
+}
+
+var S19=[
+  function(){showEl('s19-p1');s19ResetReveal();resetQuiz('s19-quiz');setInfo('Read main() — predict output after library -= drop');},
+  function(){showEl('s19-p2');setInfo('Use the checklist to verify your implementation');}
+];
+function resetS19(){hideEl('s19-p2');showEl('s19-p1');s19ResetReveal();resetQuiz('s19-quiz');s19Step=0;}
+
+var S20=[
+  function(){showEl('s20-p1');setInfo('Pointer to struct: use -> or (*p).member — not p.member');},
+  function(){showEl('s20-p2');lockCode('s20-equiv');resetQuiz('s20-quiz');setInfo('Quiz: valid member access through a pointer');}
+];
+function resetS20(){hideEl('s20-p2');showEl('s20-p1');lockCode('s20-equiv');resetQuiz('s20-quiz');s20Step=0;}
+
+var S21=[
+  function(){showEl('s21-p1');setInfo('Unit 04 recap — key concepts at a glance');},
+  function(){showEl('s21-p2');resetQuiz('s21-quiz');setInfo('Final quiz: struct vs class convention');}
+];
+function resetS21(){hideEl('s21-p2');showEl('s21-p1');resetQuiz('s21-quiz');s21Step=0;}
+// ══════════════════════════════════
+// SLIDE MANAGER (21 slides)
+// ══════════════════════════════════
+var curSlide=1, SLIDE_COUNT=21;
+var s2Step=0,s3Step=0,s4Step=0,s5Step=0,s6Step=0,s7Step=0,s8Step=0,s9Step=0,s10Step=0;
+var s11Step=0,s12Step=0,s13Step=0,s14Step=0,s15Step=0,s16Step=0,s17Step=0,s18Step=0,s19Step=0,s20Step=0,s21Step=0;
+
+function onEnterSlide(n){
+  if(n===1)setInfo('Press → to advance · answer quizzes to reveal hidden code');
+  if(n===2){resetS2();S2[0]();s2Step=1;}
+  if(n===3){resetS3();S3[0]();s3Step=1;}
+  if(n===4){resetS4();S4[0]();s4Step=1;}
+  if(n===5){resetS5();S5[0]();s5Step=1;}
+  if(n===6){resetS6();S6[0]();s6Step=1;}
+  if(n===7){resetS7();S7[0]();s7Step=1;}
+  if(n===8){resetS8();S8[0]();s8Step=1;}
+  if(n===9){resetS9();S9[0]();s9Step=1;}
+  if(n===10){resetS10();S10[0]();s10Step=1;}
+  if(n===11){resetS11();S11[0]();s11Step=1;}
+  if(n===12){resetS12();S12[0]();s12Step=1;}
+  if(n===13){resetS13();S13[0]();s13Step=1;}
+  if(n===14){resetS14();S14[0]();s14Step=1;}
+  if(n===15){resetS15();S15[0]();s15Step=1;}
+  if(n===16){resetS16();S16[0]();s16Step=1;}
+  if(n===17){resetS17();S17[0]();s17Step=1;}
+  if(n===18){resetS18();S18[0]();s18Step=1;}
+  if(n===19){resetS19();S19[0]();s19Step=1;}
+  if(n===20){resetS20();S20[0]();s20Step=1;}
+  if(n===21){resetS21();S21[0]();s21Step=1;}
+}
+
+function goSlide(n){
+  clearAll();
+  document.getElementById('s'+curSlide).classList.remove('active');
+  document.getElementById('s'+n).classList.add('active');
+  curSlide=n;
+  setCounter('Slide '+n+' / '+SLIDE_COUNT);
+  updateJumpActive();
+  resetSlideScroll();
+  onEnterSlide(n);
+  requestAnimationFrame(function(){ applySlideZoom(); });
+}
+
+function buildJumpPanel(){
+  var grid=document.getElementById('jump-grid');
+  if(!grid||grid.children.length)return;
+  for(var i=1;i<=SLIDE_COUNT;i++){
+    var b=document.createElement('button');
+    b.className='jump-btn'+(i===curSlide?' active':'');
+    b.textContent=i;
+    b.title='Slide '+i;
+    b.onclick=function(n){return function(){jumpToSlide(n);};}(i);
+    grid.appendChild(b);
+  }
+}
+
+function updateJumpActive(){
+  document.querySelectorAll('.jump-btn').forEach(function(b,i){
+    b.classList.toggle('active',i+1===curSlide);
+  });
+}
+
+function jumpToSlide(n){
+  if(n<1||n>SLIDE_COUNT||n===curSlide)return;
+  toggleJumpPanel(false);
+  goSlide(n);
+}
+
+function toggleJumpPanel(show){
+  var panel=document.getElementById('jump-panel');
+  var toggle=document.getElementById('jump-toggle');
+  if(!panel)return;
+  if(show===undefined)show=!panel.classList.contains('open');
+  panel.classList.toggle('open',show);
+  if(toggle)toggle.classList.toggle('active',show);
+}
+
+function nextStep(){
+  clearAll();
+  if(curSlide===1){goSlide(2);return;}
+  if(curSlide===2){if(s2Step<S2.length){S2[s2Step]();s2Step++;return;}goSlide(3);return;}
+  if(curSlide===3){if(s3Step<S3.length){S3[s3Step]();s3Step++;return;}goSlide(4);return;}
+  if(curSlide===4){if(s4Step<S4.length){S4[s4Step]();s4Step++;return;}goSlide(5);return;}
+  if(curSlide===5){if(s5Step<S5.length){S5[s5Step]();s5Step++;return;}goSlide(6);return;}
+  if(curSlide===6){if(s6Step<S6.length){S6[s6Step]();s6Step++;return;}goSlide(7);return;}
+  if(curSlide===7){if(s7Step<S7.length){S7[s7Step]();s7Step++;return;}goSlide(8);return;}
+  if(curSlide===8){if(s8Step<S8.length){S8[s8Step]();s8Step++;return;}goSlide(9);return;}
+  if(curSlide===9){if(s9Step<S9.length){S9[s9Step]();s9Step++;return;}goSlide(10);return;}
+  if(curSlide===10){if(s10Step<S10.length){S10[s10Step]();s10Step++;return;}goSlide(11);return;}
+  if(curSlide===11){if(s11Step<S11.length){S11[s11Step]();s11Step++;return;}goSlide(12);return;}
+  if(curSlide===12){if(s12Step<S12.length){S12[s12Step]();s12Step++;return;}goSlide(13);return;}
+  if(curSlide===13){if(s13Step<S13.length){S13[s13Step]();s13Step++;return;}goSlide(14);return;}
+  if(curSlide===14){if(s14Step<S14.length){S14[s14Step]();s14Step++;return;}goSlide(15);return;}
+  if(curSlide===15){if(s15Step<S15.length){S15[s15Step]();s15Step++;return;}goSlide(16);return;}
+  if(curSlide===16){if(s16Step<S16.length){S16[s16Step]();s16Step++;return;}goSlide(17);return;}
+  if(curSlide===17){if(s17Step<S17.length){S17[s17Step]();s17Step++;return;}goSlide(18);return;}
+  if(curSlide===18){if(s18Step<S18.length){S18[s18Step]();s18Step++;return;}goSlide(19);return;}
+  if(curSlide===19){if(s19Step<S19.length){S19[s19Step]();s19Step++;return;}goSlide(20);return;}
+  if(curSlide===20){if(s20Step<S20.length){S20[s20Step]();s20Step++;return;}goSlide(21);return;}
+  if(curSlide===21){if(s21Step<S21.length){S21[s21Step]();s21Step++;return;}}
+}
+
+function prevSlide(){
+  clearAll();
+  if(curSlide===1)return;
+  if(curSlide===2){if(rewindSteps(S2,'s2Step',resetS2))return;goSlide(1);return;}
+  if(curSlide===3){if(rewindSteps(S3,'s3Step',resetS3))return;goSlide(2);return;}
+  if(curSlide===4){if(rewindSteps(S4,'s4Step',resetS4))return;goSlide(3);return;}
+  if(curSlide===5){if(rewindSteps(S5,'s5Step',resetS5))return;goSlide(4);return;}
+  if(curSlide===6){if(rewindSteps(S6,'s6Step',resetS6))return;goSlide(5);return;}
+  if(curSlide===7){if(rewindSteps(S7,'s7Step',resetS7))return;goSlide(6);return;}
+  if(curSlide===8){if(rewindSteps(S8,'s8Step',resetS8))return;goSlide(7);return;}
+  if(curSlide===9){if(rewindSteps(S9,'s9Step',resetS9))return;goSlide(8);return;}
+  if(curSlide===10){if(rewindSteps(S10,'s10Step',resetS10))return;goSlide(9);return;}
+  if(curSlide===11){if(rewindSteps(S11,'s11Step',resetS11))return;goSlide(10);return;}
+  if(curSlide===12){if(rewindSteps(S12,'s12Step',resetS12))return;goSlide(11);return;}
+  if(curSlide===13){if(rewindSteps(S13,'s13Step',resetS13))return;goSlide(12);return;}
+  if(curSlide===14){if(rewindSteps(S14,'s14Step',resetS14))return;goSlide(13);return;}
+  if(curSlide===15){if(rewindSteps(S15,'s15Step',resetS15))return;goSlide(14);return;}
+  if(curSlide===16){if(rewindSteps(S16,'s16Step',resetS16))return;goSlide(15);return;}
+  if(curSlide===17){if(rewindSteps(S17,'s17Step',resetS17))return;goSlide(16);return;}
+  if(curSlide===18){if(rewindSteps(S18,'s18Step',resetS18))return;goSlide(17);return;}
+  if(curSlide===19){if(rewindSteps(S19,'s19Step',resetS19))return;goSlide(18);return;}
+  if(curSlide===20){if(rewindSteps(S20,'s20Step',resetS20))return;goSlide(19);return;}
+  if(curSlide===21){if(rewindSteps(S21,'s21Step',resetS21))return;goSlide(20);return;}
+}
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();nextStep();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();prevSlide();}
+  else if(e.key==='Escape')toggleJumpPanel(false);
+  else if(e.key==='p'||e.key==='P')setMode('pen');
+  else if(e.key==='e'||e.key==='E')setMode('eraser');
+  else if(e.key==='c'||e.key==='C')clearAll();
+  else if(e.key==='1')setColor('#ef4444','col-r');
+  else if(e.key==='2')setColor('#3b82f6','col-b');
+  else if(e.key==='3')setColor('#22c55e','col-g');
+  else if(e.key==='4')setColor('#f59e0b','col-y');
+  else if(e.key==='5')setColor('#ffffff','col-w');
+});
+
+buildJumpPanel();
+initCodeBlocks();
+initZoom();
+document.addEventListener('click',function(e){
+  var panel=document.getElementById('jump-panel');
+  var toggle=document.getElementById('jump-toggle');
+  if(!panel||!panel.classList.contains('open'))return;
+  if(!panel.contains(e.target)&&toggle&&!toggle.contains(e.target))toggleJumpPanel(false);
+});
+</script>
+</body>
+</html>

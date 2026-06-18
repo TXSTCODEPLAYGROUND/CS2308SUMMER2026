@@ -1,0 +1,3700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Linked Lists — C++ Data Structures</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#fff;color:#1a1a2e;width:100vw;height:100vh;overflow:hidden;}
+
+#draw-canvas{position:fixed;inset:0;z-index:999;pointer-events:none;}
+#draw-canvas.pen-on{pointer-events:all;cursor:none;}
+#draw-canvas.eraser-on{pointer-events:all;cursor:none;}
+#draw-cursor{position:fixed;left:0;top:0;width:17px;height:17px;border-radius:50%;border:2px solid #111827;background:rgba(255,255,255,.88);box-shadow:0 0 0 2px rgba(255,255,255,.95),0 0 9px rgba(0,0,0,.45);pointer-events:none;z-index:2000;display:none;transform:translate(-50%,-50%);}
+#draw-cursor::before,#draw-cursor::after{content:'';position:absolute;background:#111827;left:50%;top:50%;transform:translate(-50%,-50%);}
+#draw-cursor::before{width:11px;height:2px;}
+#draw-cursor::after{width:2px;height:11px;}
+#draw-cursor.show{display:block;}
+#draw-cursor.eraser{border-color:#0f172a;background:rgba(255,255,255,.94);border-style:dashed;width:23px;height:23px;}
+
+#toolbar{position:fixed;left:12px;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(26,26,46,0.94);
+  border-radius:22px;padding:10px 8px;z-index:1000;box-shadow:0 4px 16px rgba(0,0,0,0.25);}
+.tb{width:30px;height:30px;border-radius:50%;border:1.5px solid transparent;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;
+  background:rgba(255,255,255,0.08);transition:all 0.2s;}
+.tb:hover{background:rgba(255,255,255,0.18);}
+.tb.active{background:#534AB7;border-color:#7F77DD;}
+.cb{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);cursor:pointer;transition:all 0.2s;}
+.cb:hover{transform:scale(1.2);}
+.cb.active{border-color:white;transform:scale(1.25);}
+.sb{border-radius:50%;background:white;cursor:pointer;border:2px solid rgba(255,255,255,0.25);}
+.sb.active{border-color:#a78bfa;}
+.tdiv{width:18px;height:1px;background:rgba(255,255,255,0.15);margin:2px 0;}
+
+.nav{position:fixed;bottom:14px;right:16px;display:flex;gap:6px;z-index:1000;}
+.nbtn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:16px;font-weight:700;cursor:pointer;border:none;transition:all 0.2s;}
+.pb{background:#f1f5f9;color:#6b7280;}.pb:hover{background:#e2e8f0;}
+.nb{background:#534AB7;color:white;}.nb:hover{background:#3C3489;}
+.info-bar{position:fixed;bottom:18px;left:16px;font-size:11px;color:#9ca3af;max-width:500px;z-index:1000;}
+.zoom-bar{position:fixed;top:12px;left:56px;display:flex;align-items:center;gap:4px;z-index:1000;
+  background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:4px 8px;box-shadow:0 2px 10px rgba(15,23,42,.06);}
+.zoom-btn{width:26px;height:26px;border-radius:7px;border:1px solid transparent;background:transparent;
+  cursor:pointer;font-size:13px;line-height:1;color:#6b7280;display:flex;align-items:center;justify-content:center;
+  padding:0;font-family:inherit;transition:all .15s;}
+.zoom-btn:hover{border-color:#c7d2fe;color:#534AB7;background:#f5f3ff;}
+.zoom-btn.active{background:#534AB7;border-color:#534AB7;color:#fff;}
+.zoom-slider{width:72px;height:4px;accent-color:#534AB7;cursor:pointer;margin:0 2px;}
+.zoom-pct{font-size:10px;font-weight:700;color:#6b7280;min-width:34px;text-align:right;font-variant-numeric:tabular-nums;}
+.top-chrome{position:fixed;top:12px;right:16px;display:flex;align-items:center;gap:8px;z-index:1000;}
+.counter{font-size:11px;color:#9ca3af;background:white;padding:3px 9px;border-radius:20px;border:1px solid #e5e7eb;}
+.jump-toggle{width:30px;height:30px;border-radius:9px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;color:#6b7280;transition:all .2s;padding:0;}
+.jump-toggle:hover,.jump-toggle.active{border-color:#534AB7;color:#534AB7;background:#f5f3ff;}
+.grid-icon{display:grid;grid-template-columns:1fr 1fr;gap:2.5px;width:12px;height:12px;}
+.grid-icon span{background:currentColor;border-radius:1px;}
+.jump-panel{position:fixed;top:48px;right:16px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;
+  padding:10px 12px;box-shadow:0 8px 28px rgba(15,23,42,.12);z-index:1001;display:none;max-height:70vh;overflow-y:auto;}
+.jump-panel.open{display:block;}
+.jump-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;}
+.jump-btn{width:28px;height:26px;border-radius:7px;border:1px solid #e5e7eb;background:#fff;font-size:11px;
+  font-weight:700;color:#6b7280;cursor:pointer;padding:0;transition:all .15s;font-family:inherit;}
+.jump-btn:hover{border-color:#534AB7;color:#534AB7;background:#f5f3ff;}
+.jump-btn.active{background:#534AB7;border-color:#534AB7;color:#fff;}
+
+.slide{position:absolute;inset:0;display:none;overflow:auto;overflow-x:auto;
+  background:#fff;padding:42px 20px 58px;-webkit-overflow-scrolling:touch;}
+.slide.active{display:block;}
+.slide>.ll-wrap{margin:0 auto;transform-origin:top center;transition:transform .12s ease;}
+.sl-title{font-size:24px;font-weight:700;color:#1a1a2e;text-align:center;margin-bottom:14px;}
+.sl-title span{color:#534AB7;}
+.panel{background:#fff;border:1.5px solid #e5e7eb;border-radius:16px;padding:15px 17px;box-shadow:0 6px 18px rgba(15,23,42,.05);opacity:0;transform:translateY(10px);transition:all .5s cubic-bezier(0.34,1.2,0.64,1);}
+.panel.show{opacity:1;transform:translateY(0);}
+.panel-kick{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:#534AB7;font-weight:800;}
+.panel-title{font-size:15px;font-weight:700;color:#1a1a2e;margin:3px 0 8px;}
+.panel-sub{font-size:12px;color:#6b7280;line-height:1.55;}
+input[type=range]{accent-color:#534AB7;cursor:pointer;}
+
+.ll-wrap{width:100%;max-width:1200px;padding:8px 26px 56px;display:flex;flex-direction:column;align-items:center;gap:14px;}
+.ll-split{display:grid;grid-template-columns:1fr 1fr;gap:18px;width:100%;align-items:start;}
+.ll-split.wide{grid-template-columns:1.1fr .9fr;}
+@media(max-width:900px){.ll-split,.ll-split.wide{grid-template-columns:1fr;}}
+
+.code-block{position:relative;background:#1a1a2e;border-radius:12px;padding:32px 16px 14px;font-family:'Courier New',Consolas,monospace;font-size:11.5px;line-height:1.65;color:#e5e7eb;overflow-x:auto;white-space:pre;border:1.5px solid transparent;}
+.code-block:has(.code-line){white-space:normal;padding-left:3.6em;counter-reset:code-ln;}
+.code-block .code-line{display:block;position:relative;white-space:pre;counter-increment:code-ln;}
+.code-block .code-line:empty{min-height:1.65em;}
+.code-block .code-line::before{
+  content:counter(code-ln);position:absolute;left:-3em;width:2.6em;text-align:right;
+  color:#9ca3af;opacity:0;font-size:.95em;font-weight:600;user-select:none;pointer-events:none;transition:opacity .15s ease;
+}
+.code-block.show-lines .code-line::before{opacity:1;}
+.code-block.theme-light.show-lines .code-line::before{color:#64748b;}
+.code-block .kw{color:#c084fc;}
+.code-block .ty{color:#67e8f9;}
+.code-block .cm{color:#6b7280;font-style:italic;}
+.code-block .num{color:#fbbf24;}
+.code-block .str{color:#86efac;}
+.code-block .hl{background:rgba(29,158,117,.35);display:inline-block;width:calc(100% + 8px);margin-left:-4px;padding:0 4px;border-radius:4px;border-left:3px solid #1D9E75;}
+.code-block .hl-warn{background:rgba(239,68,68,.25);border-left-color:#ef4444;}
+.code-block .hl-ptr{background:rgba(59,130,246,.25);border-left-color:#3b82f6;}
+.code-block-toolbar{position:absolute;top:10px;right:10px;display:flex;gap:2px;z-index:3;}
+.code-ln-btn,.code-theme-btn,.code-edit-btn{width:24px;height:24px;border-radius:6px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;color:inherit;opacity:.32;transition:opacity .2s ease,background .2s ease,transform .15s ease;font-family:inherit;flex-shrink:0;}
+.code-ln-btn:hover,.code-theme-btn:hover,.code-edit-btn:hover{opacity:.88;background:rgba(255,255,255,.08);}
+.code-ln-btn:active,.code-theme-btn:active,.code-edit-btn:active{transform:scale(.94);}
+.code-ln-btn.active,.code-theme-btn.active{opacity:.72;}
+.code-ln-btn svg,.code-theme-btn svg,.code-edit-btn svg{display:block;flex-shrink:0;}
+.code-edit-btn{position:relative;}
+.code-edit-btn.has-override{opacity:.72;}
+.code-edit-btn.has-override::after{content:'';position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:#1D9E75;}
+.code-block.theme-light .code-ln-btn:hover,.code-block.theme-light .code-theme-btn:hover,.code-block.theme-light .code-edit-btn:hover{background:rgba(15,23,42,.06);}
+.code-block-editing{padding-bottom:10px;}
+.code-block-editor{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.code-edit-textarea{width:100%;min-height:9em;resize:vertical;border-radius:8px;border:1.5px solid rgba(83,74,183,.35);background:#0f0f1a;color:#e5e7eb;font-family:inherit;font-size:inherit;line-height:1.65;padding:10px 12px;box-sizing:border-box;}
+.code-block.theme-light .code-edit-textarea{background:#fff;color:#1e293b;border-color:#c7d2fe;}
+.code-edit-textarea:focus{outline:2px solid rgba(83,74,183,.4);outline-offset:1px;}
+.code-edit-actions{display:flex;flex-wrap:wrap;gap:6px;}
+.code-edit-save,.code-edit-cancel,.code-edit-revert{font-size:10px;font-weight:600;padding:5px 12px;border-radius:8px;border:1.5px solid transparent;cursor:pointer;font-family:inherit;}
+.code-edit-save{background:#534AB7;color:#fff;border-color:#534AB7;}
+.code-edit-save:hover{background:#4338a8;}
+.code-edit-cancel{background:transparent;color:inherit;border-color:#4b5563;opacity:.85;}
+.code-edit-cancel:hover{opacity:1;background:rgba(255,255,255,.06);}
+.code-edit-revert{background:transparent;color:#fbbf24;border-color:#fbbf24;opacity:.9;}
+.code-edit-revert:hover{opacity:1;background:rgba(251,191,36,.1);}
+.code-block.theme-light .code-edit-cancel{border-color:#cbd5e1;}
+.code-block.theme-light .code-edit-cancel:hover{background:rgba(15,23,42,.04);}
+.code-block.theme-light{background:#f8fafc;color:#1e293b;border-color:#e2e8f0;}
+.code-block.theme-light .kw{color:#7c3aed;}
+.code-block.theme-light .ty{color:#0891b2;}
+.code-block.theme-light .cm{color:#64748b;}
+.code-block.theme-light .num{color:#d97706;}
+.code-block.theme-light .str{color:#16a34a;}
+.code-block.theme-light .hl{background:rgba(29,158,117,.18);border-left-color:#1D9E75;}
+.code-block.theme-light .hl-warn{background:rgba(239,68,68,.12);border-left-color:#ef4444;}
+.code-block.theme-light .hl-ptr{background:rgba(59,130,246,.12);border-left-color:#3b82f6;}
+
+.trace-bar{background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:10px 14px;font-size:12px;color:#534AB7;font-weight:700;line-height:1.5;min-height:42px;}
+.trace-bar.warn{background:#fff5f5;border-color:#fecaca;color:#b91c1c;}
+.trace-bar.ok{background:#ecfdf5;border-color:#a7f3d0;color:#15803d;}
+
+.ll-canvas-wrap{background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:14px;padding:12px;width:100%;}
+.ll-canvas-wrap canvas{display:block;width:100%;border-radius:8px;}
+
+.q-card{background:linear-gradient(135deg,#f5f3ff,#fff);border:2px dashed #c7d2fe;border-radius:14px;padding:16px 20px;text-align:center;}
+.q-card h3{font-size:16px;color:#534AB7;margin-bottom:8px;}
+.q-card p{font-size:13px;color:#6b7280;line-height:1.6;}
+
+.ptr-box{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:8px 0;}
+.ptr-item{background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:10px;padding:8px 14px;text-align:center;}
+.ptr-item .ptr-name{font-size:10px;font-weight:800;color:#534AB7;text-transform:uppercase;letter-spacing:1px;}
+.ptr-item .ptr-val{font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:#1a1a2e;margin-top:3px;}
+.ptr-item.highlight{border-color:#1D9E75;background:#ecfdf5;box-shadow:0 0 0 3px rgba(29,158,117,.2);}
+
+.complex-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;width:100%;}
+@media(max-width:800px){.complex-grid{grid-template-columns:1fr;}}
+.cpx-card{padding:14px 16px;border-radius:14px;border:1.5px solid #e5e7eb;background:#f8fafc;}
+.cpx-card h4{font-size:13px;font-weight:800;color:#534AB7;margin-bottom:8px;}
+.cpx-row{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:11px;}
+.cpx-name{width:80px;text-align:right;color:#6b7280;font-weight:700;font-family:'Courier New',monospace;}
+.cpx-track{flex:1;height:16px;background:#eef2f7;border-radius:6px;overflow:hidden;}
+.cpx-fill{height:100%;border-radius:6px;transition:width .4s ease;}
+.cpx-val{width:50px;font-family:'Courier New',monospace;font-weight:800;font-size:10.5px;color:#1a1a2e;}
+.cpx-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;font-family:'Courier New',monospace;}
+.cpx-o1{background:#dcfce7;color:#15803d;}
+.cpx-on{background:#fef3c7;color:#b45309;}
+.cpx-oworst{background:#fee2e2;color:#b91c1c;}
+
+.n-slider-row{display:flex;align-items:center;gap:14px;margin:8px 0;}
+.n-slider-row label{font-size:12px;font-weight:700;color:#6b7280;min-width:100px;}
+.n-slider-row input{flex:1;}
+.n-val{font-size:20px;font-weight:800;color:#534AB7;font-family:'Courier New',monospace;min-width:40px;text-align:center;}
+
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;}
+.tab-btn{padding:8px 16px;border-radius:14px;border:2px solid #e5e7eb;background:#f8fafc;font-size:12px;font-weight:700;color:#6b7280;cursor:pointer;transition:all .2s;}
+.tab-btn:hover{border-color:#c7d2fe;}
+.tab-btn.active{background:#534AB7;border-color:#534AB7;color:white;box-shadow:0 6px 16px rgba(83,74,183,.3);}
+
+.del-demo{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px;}
+.del-btn{padding:7px 16px;border-radius:10px;border:2px solid #e5e7eb;background:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
+.del-btn:hover{border-color:#534AB7;color:#534AB7;}
+.del-btn.active{background:#534AB7;border-color:#534AB7;color:white;}
+@keyframes up{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+.s1-name{margin-top:32px;font-size:14px;font-weight:700;color:#534AB7;letter-spacing:.5px;}
+.loss-table{width:100%;}
+.s10-quick-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px;}
+.fit-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;}
+@media(max-width:800px){.fit-grid{grid-template-columns:1fr;}}
+.fit-card{padding:16px 18px;border-radius:14px;border:2px solid;}
+.fit-card h4{font-size:14px;font-weight:800;margin-bottom:10px;}
+.fit-card ul{margin:0;padding-left:18px;font-size:12.5px;line-height:1.7;color:#475569;}
+.fit-card li{margin:4px 0;}
+.fit-good{border-color:#a7f3d0;background:#ecfdf5;}
+.fit-good h4{color:#15803d;}
+.fit-bad{border-color:#fecaca;background:#fff5f5;}
+.fit-bad h4{color:#b91c1c;}
+.decision-box{text-align:center;padding:8px 0;}
+.decision-quote{font-size:15px;color:#374151;line-height:1.7;max-width:640px;margin:8px auto 0;}
+.decision-quote span{color:#534AB7;font-weight:800;}
+.bridge-card{max-width:720px;margin:0 auto;padding:14px 18px;border-radius:14px;background:#f5f3ff;border:1.5px solid #ddd6fe;font-size:13px;color:#475569;line-height:1.65;text-align:center;}
+.bridge-card strong{color:#534AB7;}
+.bridge-card code{background:#fff;padding:2px 6px;border-radius:4px;font-size:12px;}
+.cmp-table{width:100%;border-collapse:collapse;font-size:12px;}
+.cmp-table th{background:#534AB7;color:white;padding:8px 10px;text-align:left;font-size:11px;}
+.cmp-table td{padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#374151;}
+.cmp-table tr.cmp-row{cursor:pointer;transition:background .2s;}
+.cmp-table tr.cmp-row:hover{background:#f5f3ff;}
+.cmp-table tr.cmp-row.sel{background:#ede9fe;box-shadow:inset 3px 0 0 #534AB7;}
+.cmp-table tr.cmp-row.sel td{font-weight:700;}
+.fin-note{max-width:760px;text-align:center;font-size:13px;color:#6b7280;line-height:1.7;padding:13px 18px;border-radius:14px;background:#f5f3ff;border:1.5px solid #ddd6fe;}
+.fin-note strong{color:#534AB7;}
+.fin-note code{background:#fff;padding:2px 6px;border-radius:4px;font-size:12px;}
+.uc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;}
+@media(max-width:900px){.uc-grid{grid-template-columns:1fr;}}
+.uc-card{border:1.5px solid #e5e7eb;border-radius:14px;background:#fff;overflow:hidden;transition:box-shadow .25s;}
+.uc-card.open{border-color:#c7d2fe;box-shadow:0 8px 24px rgba(83,74,183,.12);}
+.uc-card.uc-contrast{border-color:#ddd6fe;background:#fafaff;}
+.uc-head{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;}
+.uc-head:hover{background:#f8fafc;}
+.uc-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.uc-txt{flex:1;min-width:0;}
+.uc-title{font-size:13px;font-weight:800;color:#1a1a2e;}
+.uc-sub{font-size:10.5px;color:#9ca3af;margin-top:2px;}
+.uc-chev{font-size:10px;color:#9ca3af;transition:transform .25s;}
+.uc-card.open .uc-chev{transform:rotate(90deg);}
+.uc-body{max-height:0;overflow:hidden;transition:max-height .35s ease;}
+.uc-body-in{padding:0 14px 14px 66px;}
+.uc-body-in p{font-size:12px;color:#475569;line-height:1.6;margin:0 0 8px;}
+.uc-why{padding:8px 10px;border-radius:8px;background:#f5f3ff;border-left:3px solid #534AB7;font-size:11.5px!important;}
+.fin-flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;}
+.fin-node{padding:11px 20px;border-radius:13px;font-size:14px;font-weight:800;border:2.5px solid;background:white;}
+.fin-arrow{font-size:18px;color:#9ca3af;font-weight:800;}
+.fin-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%;}
+@media(max-width:800px){.fin-cards{grid-template-columns:1fr;}}
+.fin-card{padding:16px 18px;border-radius:16px;border:1.5px solid #e5e7eb;background:#f8fafc;box-shadow:0 6px 18px rgba(15,23,42,.04);}
+.fin-card h4{font-size:14px;font-weight:800;color:#534AB7;margin-bottom:6px;}
+.fin-card p{font-size:12.5px;color:#475569;line-height:1.6;}
+.fin-note{max-width:760px;text-align:center;font-size:13px;color:#6b7280;line-height:1.7;padding:13px 18px;border-radius:14px;background:#f5f3ff;border:1.5px solid #ddd6fe;margin:0 auto;}
+.fin-note strong{color:#534AB7;}
+.s1-name{margin-top:32px;font-size:14px;font-weight:700;color:#534AB7;letter-spacing:.5px;text-align:center;}
+.dll-nav{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.dll-ops{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.dll-op-btn{padding:8px 14px;border-radius:10px;border:2px solid #e5e7eb;background:#fff;font-size:11.5px;font-weight:700;font-family:'Courier New',monospace;cursor:pointer;transition:all .2s;}
+.dll-op-btn:hover{border-color:#534AB7;color:#534AB7;}
+.dll-op-btn.active{background:#534AB7;border-color:#534AB7;color:white;}
+.dll-op-btn.dll-reset{font-family:-apple-system,sans-serif;}
+.dll-uses{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;}
+@media(max-width:800px){.dll-uses{grid-template-columns:1fr;}}
+.dll-use-card{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;border:1.5px solid #e5e7eb;background:#f8fafc;}
+.dll-use-card span{font-size:24px;}
+.dll-use-card div{font-size:12px;color:#475569;line-height:1.55;}
+.dll-use-card strong{color:#534AB7;}
+.s1-name{font-size:14px;font-weight:700;color:#534AB7;letter-spacing:.5px;text-align:center;}
+.cmp-matrix-wrap{width:100%;overflow-x:auto;}
+.cmp-matrix{width:100%;border-collapse:collapse;font-size:11.5px;}
+.cmp-matrix th{background:#534AB7;color:white;padding:8px 10px;text-align:center;font-size:11px;}
+.cmp-matrix th.cmp-col{cursor:pointer;transition:background .2s;}
+.cmp-matrix th.cmp-col:hover,.cmp-matrix th.cmp-col.sel{background:#3C3489;}
+.cmp-matrix td{padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center;color:#374151;}
+.cmp-matrix tr.cmp-mrow{cursor:pointer;transition:background .2s;}
+.cmp-matrix tr.cmp-mrow:hover{background:#f5f3ff;}
+.cmp-matrix tr.cmp-mrow.sel{background:#ede9fe;}
+.cmp-matrix tr.cmp-mrow.sel td:first-child{font-weight:800;color:#534AB7;}
+.cmp-matrix td.col-hl{background:#f5f3ff;font-weight:700;}
+.cmp-pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
+.cmp-pill{padding:5px 12px;border-radius:20px;background:#f5f3ff;color:#534AB7;font-size:11px;font-weight:700;border:1px solid #ddd6fe;}
+.rw-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;}
+@media(max-width:900px){.rw-grid{grid-template-columns:1fr;}}
+.rw-card{padding:14px 16px;border-radius:14px;border:2px solid #e5e7eb;background:#fff;cursor:pointer;transition:all .25s;}
+.rw-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(15,23,42,.1);}
+.rw-card.sel{box-shadow:0 0 0 3px #534AB7;}
+.rw-card.rw-sll.sel{border-color:#534AB7;}
+.rw-card.rw-dll.sel{border-color:#1D9E75;}
+.rw-card.rw-cll.sel{border-color:#3b82f6;}
+.rw-card.rw-cdll.sel{border-color:#f59e0b;}
+.rw-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:800;margin-bottom:6px;}
+.rw-sll .rw-badge{background:#f5f3ff;color:#534AB7;}
+.rw-dll .rw-badge{background:#ecfdf5;color:#15803d;}
+.rw-cll .rw-badge{background:#eff6ff;color:#1d4ed8;}
+.rw-cdll .rw-badge{background:#fffbeb;color:#b45309;}
+.rw-card h4{font-size:13px;font-weight:800;color:#1a1a2e;margin-bottom:8px;}
+.rw-card ul{margin:0;padding-left:16px;font-size:11.5px;color:#475569;line-height:1.65;}
+.rw-card li{margin:3px 0;}
+.picker-box{text-align:center;padding:16px 20px;border-radius:14px;background:#f8fafc;border:1.5px solid #e5e7eb;max-width:640px;margin:0 auto;}
+.picker-q{font-size:14px;color:#374151;line-height:1.6;margin:8px 0;}
+.picker-ans{font-size:15px;color:#534AB7;font-weight:700;}
+.fin-note{max-width:800px;text-align:center;font-size:13px;color:#6b7280;line-height:1.7;padding:13px 18px;border-radius:14px;background:#f5f3ff;border:1.5px solid #ddd6fe;margin:0 auto;}
+.fin-note strong{color:#534AB7;}
+.s1-name{font-size:14px;font-weight:700;color:#534AB7;letter-spacing:.5px;text-align:center;}
+.cp-picks{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:10px;}
+.cp-pick{padding:8px 16px;border-radius:12px;border:2px solid #e5e7eb;background:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
+.cp-pick:hover{border-color:#534AB7;color:#534AB7;}
+.cp-pick.active{background:#534AB7;border-color:#534AB7;color:#fff;}
+.cp-head{font-size:16px;font-weight:800;color:#1a1a2e;text-align:center;}
+.cp-meta{font-size:11px;color:#6b7280;text-align:center;margin-top:4px;}
+.cp-label{font-size:10px;font-weight:800;color:#534AB7;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;text-align:center;}
+.cp-steps{display:flex;flex-direction:column;gap:6px;}
+.cp-step{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:#475569;line-height:1.5;}
+.cp-step-n{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:#f5f3ff;color:#534AB7;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.cp-tests{display:flex;flex-direction:column;gap:5px;}
+.cp-test{font-size:11.5px;padding:6px 10px;border-radius:8px;background:#f8fafc;border:1px solid #e5e7eb;font-family:'Courier New',monospace;color:#374151;}
+.fin-note{text-align:center;font-size:12px;color:#6b7280;line-height:1.6;padding:10px 14px;border-radius:12px;background:#f5f3ff;border:1.5px solid #ddd6fe;}
+.fin-note strong{color:#534AB7;}
+.s1-name{font-size:13px;font-weight:700;color:#534AB7;text-align:center;}
+</style>
+</head>
+<body>
+<canvas id="draw-canvas"></canvas>
+<div id="draw-cursor"></div>
+
+<div id="toolbar">
+  <div class="tb active" id="btn-pointer" onclick="setMode('pointer')">👆</div>
+  <div class="tb" id="btn-pen" onclick="setMode('pen')">✏️</div>
+  <div class="tb" id="btn-eraser" onclick="setMode('eraser')">🧹</div>
+  <div class="tb" onclick="clearAll()">🗑️</div>
+  <div class="tdiv"></div>
+  <div class="cb active" id="col-r" style="background:#ef4444" onclick="setColor('#ef4444','col-r')"></div>
+  <div class="cb" id="col-b" style="background:#3b82f6" onclick="setColor('#3b82f6','col-b')"></div>
+  <div class="cb" id="col-g" style="background:#22c55e" onclick="setColor('#22c55e','col-g')"></div>
+  <div class="cb" id="col-y" style="background:#f59e0b" onclick="setColor('#f59e0b','col-y')"></div>
+  <div class="cb" id="col-w" style="background:#fff;border-color:rgba(255,255,255,0.4)" onclick="setColor('#ffffff','col-w')"></div>
+  <div class="tdiv"></div>
+  <div class="sb active" id="sz-s" style="width:9px;height:9px;" onclick="setSize(3,'sz-s')"></div>
+  <div class="sb" id="sz-m" style="width:14px;height:14px;" onclick="setSize(6,'sz-m')"></div>
+  <div class="sb" id="sz-l" style="width:20px;height:20px;" onclick="setSize(13,'sz-l')"></div>
+</div>
+
+<div class="nav">
+  <button class="nbtn pb" onclick="prevSlide()">←</button>
+  <button class="nbtn nb" onclick="nextStep()">→</button>
+</div>
+<div class="info-bar" id="info-bar">Press → to advance</div>
+<div class="zoom-bar" id="zoom-bar" title="Slide zoom">
+  <button type="button" class="zoom-btn active" data-zoom-mode="page" onclick="event.stopPropagation();setZoomMode('page')" title="Fit to page" aria-label="Fit to page">⊡</button>
+  <button type="button" class="zoom-btn" data-zoom-mode="width" onclick="event.stopPropagation();setZoomMode('width')" title="Fit to width" aria-label="Fit to width">↔</button>
+  <button type="button" class="zoom-btn" data-zoom-mode="height" onclick="event.stopPropagation();setZoomMode('height')" title="Fit to height" aria-label="Fit to height">↕</button>
+  <input type="range" class="zoom-slider" id="zoom-slider" min="50" max="200" value="100" aria-label="Zoom level" oninput="setZoomManual(this.value)" onclick="event.stopPropagation()"/>
+  <span class="zoom-pct" id="zoom-pct">100%</span>
+</div>
+<div class="top-chrome">
+  <div class="counter" id="counter">Slide 1 / 24</div>
+  <button class="jump-toggle" id="jump-toggle" onclick="event.stopPropagation();toggleJumpPanel()" title="Jump to slide" aria-label="Jump to slide">
+    <span class="grid-icon"><span></span><span></span><span></span><span></span></span>
+  </button>
+</div>
+<div class="jump-panel" id="jump-panel">
+  <div class="jump-grid" id="jump-grid"></div>
+</div>
+<!-- SLIDE 1 — TITLE -->
+<div class="slide active" id="s1">
+  <div class="ll-wrap" style="justify-content:center;min-height:80vh;">
+    <div style="text-align:center;animation:up .8s ease both;">
+      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#1D9E75;font-weight:800;margin-bottom:6px;">CS2308 · C++ Data Structures</div>
+      <div class="sl-title" style="font-size:42px;margin-bottom:10px;">Singly <span>Linked List</span></div>
+      <p style="font-size:15px;color:#6b7280;max-width:520px;line-height:1.7;margin:0 auto;">
+        From a single <code style="background:#f5f3ff;padding:2px 6px;border-radius:4px;color:#534AB7;">Node</code> struct
+        to insert, search, count &amp; remove — with live code tracing and memory visualization.
+      </p>
+      <div style="margin-top:28px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+        <span style="padding:6px 14px;border-radius:20px;background:#f5f3ff;color:#534AB7;font-size:12px;font-weight:700;">struct Node</span>
+        <span style="padding:6px 14px;border-radius:20px;background:#ecfdf5;color:#15803d;font-size:12px;font-weight:700;">head / tail</span>
+        <span style="padding:6px 14px;border-radius:20px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:700;">O(n) traversal</span>
+      </div>
+      <div class="s1-name">Presented by Keshav</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 2 — SINGLE NODE -->
+<div class="slide" id="s2">
+  <div class="ll-wrap">
+    <div class="sl-title">The <span>Node</span> — building block</div>
+
+    <div class="panel" id="s2-p1">
+      <div class="panel-kick">Step 1</div>
+      <div class="panel-title">Define a simple struct in main.cpp</div>
+      <div class="ll-split wide">
+        <div class="code-block" id="s2-code">
+<span class="cm">// main.cpp</span>
+<span class="code-line" data-line="1"><span class="kw">struct</span> <span class="ty">Node</span> {</span>
+<span class="code-line" data-line="2">    <span class="ty">int</span> data;</span>
+<span class="code-line" data-line="3">    <span class="ty">Node</span>* next;</span>
+<span class="code-line" data-line="4">};</span>
+<span class="code-line" data-line="5"></span>
+<span class="code-line" data-line="6"><span class="ty">int</span> <span class="kw">main</span>() {</span>
+<span class="code-line" data-line="7">    <span class="ty">Node</span>* n1 = <span class="kw">new</span> <span class="ty">Node</span>{<span class="num">10</span>, <span class="kw">nullptr</span>};</span>
+<span class="code-line" data-line="8">    <span class="kw">return</span> <span class="num">0</span>;</span>
+<span class="code-line" data-line="9">}</span>
+        </div>
+        <div class="ll-canvas-wrap">
+          <canvas id="s2-canvas"></canvas>
+        </div>
+      </div>
+      <div class="trace-bar" id="s2-trace">One node allocated on the heap. next = nullptr.</div>
+    </div>
+
+    <div class="panel" id="s2-p2">
+      <div class="panel-kick">Step 2</div>
+      <div class="panel-title">Link a second node manually</div>
+      <div class="ll-split wide">
+        <div class="code-block" id="s2-code2">
+<span class="cm">// main.cpp (continued)</span>
+<span class="code-line" data-line="1">    <span class="ty">Node</span>* n2 = <span class="kw">new</span> <span class="ty">Node</span>{<span class="num">20</span>, <span class="kw">nullptr</span>};</span>
+<span class="code-line" data-line="2">    n1-&gt;next = n2;  <span class="cm">// link n1 → n2</span></span>
+        </div>
+        <div class="ll-canvas-wrap">
+          <canvas id="s2-canvas2"></canvas>
+        </div>
+      </div>
+      <div class="trace-bar" id="s2-trace2">n1-&gt;next now stores the address of n2. Non-linear: nodes live at scattered memory!</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 3 — SINGLY LINKED LIST -->
+<div class="slide" id="s3">
+  <div class="ll-wrap">
+    <div class="sl-title">Scaling up — <span>SinglyLinkedList</span></div>
+
+    <div class="panel" id="s3-p1">
+      <div class="q-card">
+        <h3>🤔 What if we need many nodes?</h3>
+        <p>Manually tracking n1, n2, n3… doesn't scale.<br>
+        How do we always find the <strong>first</strong> node? The <strong>last</strong> node?<br>
+        How do we append without walking the entire chain every time?</p>
+      </div>
+    </div>
+
+    <div class="panel" id="s3-p2">
+      <div class="panel-kick">Solution</div>
+      <div class="panel-title">Wrap nodes in a SinglyLinkedList struct</div>
+      <div class="ll-split">
+        <div class="code-block" id="s3-code">
+<span class="kw">struct</span> <span class="ty">SinglyLinkedList</span> {
+<span class="code-line" data-line="1">    <span class="ty">Node</span>* head;  <span class="cm">// first node</span></span>
+<span class="code-line" data-line="2">    <span class="ty">Node</span>* tail;  <span class="cm">// last node</span></span>
+<span class="code-line" data-line="3">};</span>
+<span class="code-line" data-line="4"></span>
+<span class="code-line" data-line="5"><span class="cm">// main.cpp</span></span>
+<span class="code-line" data-line="6"><span class="ty">int</span> <span class="kw">main</span>() {</span>
+<span class="code-line" data-line="7">    <span class="ty">SinglyLinkedList</span> list{<span class="kw">nullptr</span>, <span class="kw">nullptr</span>};</span>
+<span class="code-line" data-line="8">    <span class="cm">// manually link last element as tail:</span></span>
+<span class="code-line" data-line="9">    list.head = <span class="kw">new</span> <span class="ty">Node</span>{<span class="num">10</span>, <span class="kw">nullptr</span>};</span>
+<span class="code-line" data-line="10">    list.tail = list.head;  <span class="cm">// single node: head == tail</span></span>
+<span class="code-line" data-line="11">}</span>
+        </div>
+        <div>
+          <div class="ptr-box" id="s3-ptrs">
+            <div class="ptr-item" id="s3-head-box"><div class="ptr-name">head</div><div class="ptr-val">nullptr</div></div>
+            <div class="ptr-item" id="s3-tail-box"><div class="ptr-name">tail</div><div class="ptr-val">nullptr</div></div>
+          </div>
+          <div class="ll-canvas-wrap"><canvas id="s3-canvas"></canvas></div>
+        </div>
+      </div>
+      <div class="trace-bar" id="s3-trace">tail lets us append in O(1) — no need to walk from head every time!</div>
+    </div>
+
+    <div class="panel" id="s3-p3">
+      <div class="panel-kick">Why tail matters</div>
+      <div class="panel-title">Append a third node — tail does the heavy lifting</div>
+      <div class="ll-split wide">
+        <div class="code-block" id="s3-code2">
+<span class="code-line" data-line="1">    <span class="ty">Node</span>* n3 = <span class="kw">new</span> <span class="ty">Node</span>{<span class="num">30</span>, <span class="kw">nullptr</span>};</span>
+<span class="code-line" data-line="2">    list.tail-&gt;next = n3;   <span class="cm">// O(1) append!</span></span>
+<span class="code-line" data-line="3">    list.tail = n3;         <span class="cm">// advance tail</span></span>
+        </div>
+        <div class="ll-canvas-wrap"><canvas id="s3-canvas2"></canvas></div>
+      </div>
+      <div class="trace-bar ok" id="s3-trace2">Without tail: walk 10→20 to find the end. With tail: jump directly to 0x7ffe_a140!</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 4 — INSERT -->
+<div class="slide" id="s4">
+  <div class="ll-wrap">
+    <div class="sl-title"><span>insert()</span> — code tracing</div>
+
+    <div class="panel" id="s4-p1">
+      <div class="panel-kick">Method</div>
+      <div class="ll-split wide">
+        <div class="code-block" id="s4-code">
+<span class="kw">void</span> <span class="ty">SinglyLinkedList</span>::insert(<span class="ty">int</span> val) {</span>
+<span class="code-line" data-line="1">    <span class="ty">Node</span>* n = <span class="kw">new</span> <span class="ty">Node</span>{val, <span class="kw">nullptr</span>};</span>
+<span class="code-line" data-line="2">    <span class="kw">if</span> (head == <span class="kw">nullptr</span>) {</span>
+<span class="code-line" data-line="3">        head = tail = n;</span>
+<span class="code-line" data-line="4">        <span class="kw">return</span>;</span>
+<span class="code-line" data-line="5">    }</span>
+<span class="code-line" data-line="6">    tail-&gt;next = n;</span>
+<span class="code-line" data-line="7">    tail = n;</span>
+<span class="code-line" data-line="8">}</span>
+<span class="code-line" data-line="9"></span>
+<span class="cm">// main.cpp</span>
+<span class="code-line" data-line="10"><span class="ty">int</span> <span class="kw">main</span>() {</span>
+<span class="code-line" data-line="11">    <span class="ty">SinglyLinkedList</span> list;</span>
+<span class="code-line" data-line="12">    list.insert(<span class="num">10</span>);</span>
+<span class="code-line" data-line="13">    list.insert(<span class="num">20</span>);</span>
+<span class="code-line" data-line="14">    list.insert(<span class="num">30</span>);</span>
+<span class="code-line" data-line="15">}</span>
+        </div>
+        <div>
+          <div class="ll-canvas-wrap"><canvas id="s4-canvas"></canvas></div>
+          <div class="trace-bar" id="s4-trace">Press → to trace each insert() call step by step</div>
+          <div class="ptr-box" style="margin-top:10px;">
+            <div class="ptr-item" id="s4-head"><div class="ptr-name">head</div><div class="ptr-val">nullptr</div></div>
+            <div class="ptr-item" id="s4-tail"><div class="ptr-name">tail</div><div class="ptr-val">nullptr</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 5 — FIND -->
+<div class="slide" id="s5">
+  <div class="ll-wrap">
+    <div class="sl-title"><span>find()</span> — search by key</div>
+
+    <div class="panel" id="s5-p1">
+      <div class="ll-split wide">
+        <div class="code-block" id="s5-code">
+<span class="ty">Node</span>* <span class="ty">SinglyLinkedList</span>::find(<span class="ty">int</span> key) {</span>
+<span class="code-line" data-line="1">    <span class="ty">Node</span>* curr = head;</span>
+<span class="code-line" data-line="2">    <span class="kw">while</span> (curr != <span class="kw">nullptr</span>) {</span>
+<span class="code-line" data-line="3">        <span class="kw">if</span> (curr-&gt;data == key)</span>
+<span class="code-line" data-line="4">            <span class="kw">return</span> curr;</span>
+<span class="code-line" data-line="5">        curr = curr-&gt;next;</span>
+<span class="code-line" data-line="6">    }</span>
+<span class="code-line" data-line="7">    <span class="kw">return</span> <span class="kw">nullptr</span>;</span>
+<span class="code-line" data-line="8">}</span>
+<span class="code-line" data-line="9"></span>
+<span class="cm">// main.cpp</span>
+<span class="code-line" data-line="10"><span class="ty">Node</span>* found = list.find(<span class="num">20</span>);</span>
+        </div>
+        <div>
+          <div class="ll-canvas-wrap"><canvas id="s5-canvas"></canvas></div>
+          <div class="trace-bar" id="s5-trace">find(20): traverse from head, compare each data field</div>
+          <div class="ptr-box">
+            <div class="ptr-item highlight" id="s5-curr"><div class="ptr-name">curr</div><div class="ptr-val">0x7ffe_a100</div></div>
+            <div class="ptr-item" id="s5-result"><div class="ptr-name">return</div><div class="ptr-val">—</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 6 — COUNT -->
+<div class="slide" id="s6">
+  <div class="ll-wrap">
+    <div class="sl-title"><span>count()</span> — how many occurrences?</div>
+
+    <div class="panel" id="s6-p1">
+      <div class="ll-split wide">
+        <div class="code-block" id="s6-code">
+<span class="ty">int</span> <span class="ty">SinglyLinkedList</span>::count(<span class="ty">int</span> key) {</span>
+<span class="code-line" data-line="1">    <span class="ty">int</span> cnt = <span class="num">0</span>;</span>
+<span class="code-line" data-line="2">    <span class="ty">Node</span>* curr = head;</span>
+<span class="code-line" data-line="3">    <span class="kw">while</span> (curr != <span class="kw">nullptr</span>) {</span>
+<span class="code-line" data-line="4">        <span class="kw">if</span> (curr-&gt;data == key) cnt++;</span>
+<span class="code-line" data-line="5">        curr = curr-&gt;next;</span>
+<span class="code-line" data-line="6">    }</span>
+<span class="code-line" data-line="7">    <span class="kw">return</span> cnt;</span>
+<span class="code-line" data-line="8">}</span>
+<span class="code-line" data-line="9"></span>
+<span class="cm">// main.cpp — list: 10 → 20 → 20 → 30</span>
+<span class="code-line" data-line="10"><span class="ty">int</span> n = list.count(<span class="num">20</span>);  <span class="cm">// n = 2</span></span>
+        </div>
+        <div>
+          <div class="ll-canvas-wrap"><canvas id="s6-canvas"></canvas></div>
+          <div class="trace-bar" id="s6-trace">count(20): must visit every node — cannot skip!</div>
+          <div class="ptr-box">
+            <div class="ptr-item highlight" id="s6-cnt"><div class="ptr-name">cnt</div><div class="ptr-val">0</div></div>
+            <div class="ptr-item" id="s6-curr"><div class="ptr-name">curr</div><div class="ptr-val">0x7ffe_a100</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 7 — REMOVE FIRST -->
+<div class="slide" id="s7">
+  <div class="ll-wrap">
+    <div class="sl-title"><span>remove()</span> — deleting the head</div>
+
+    <div class="panel" id="s7-p1">
+      <div class="ll-split wide">
+        <div class="code-block" id="s7-code">
+<span class="ty">int</span> <span class="ty">SinglyLinkedList</span>::remove(<span class="ty">int</span> key) {</span>
+<span class="code-line" data-line="1">    <span class="kw">if</span> (head == <span class="kw">nullptr</span>) <span class="kw">return</span> <span class="num">0</span>;</span>
+<span class="code-line" data-line="2">    <span class="kw">if</span> (head-&gt;data == key) {</span>
+<span class="code-line" data-line="3">        <span class="ty">Node</span>* tmp = head;</span>
+<span class="code-line" data-line="4">        head = head-&gt;next;</span>
+<span class="code-line" data-line="5">        <span class="kw">if</span> (head == <span class="kw">nullptr</span>) tail = <span class="kw">nullptr</span>;</span>
+<span class="code-line" data-line="6">        <span class="kw">delete</span> tmp;</span>
+<span class="code-line" data-line="7">        <span class="kw">return</span> <span class="num">1</span>;</span>
+<span class="code-line" data-line="8">    }</span>
+<span class="code-line" data-line="9">    <span class="cm">// ... middle/tail cases follow</span></span>
+<span class="code-line" data-line="10">}</span>
+<span class="code-line" data-line="11"></span>
+<span class="cm">// main.cpp — remove head node (10)</span>
+<span class="code-line" data-line="12"><span class="ty">int</span> d = list.remove(<span class="num">10</span>);</span>
+        </div>
+        <div>
+          <div class="ll-canvas-wrap"><canvas id="s7-canvas"></canvas></div>
+          <div class="trace-bar" id="s7-trace">remove(10): head matches → rewire head pointer</div>
+          <div class="ptr-box">
+            <div class="ptr-item highlight" id="s7-head"><div class="ptr-name">head</div><div class="ptr-val">0x7ffe_a100</div></div>
+            <div class="ptr-item" id="s7-tail"><div class="ptr-name">tail</div><div class="ptr-val">0x7ffe_a140</div></div>
+            <div class="ptr-item warn" id="s7-del" style="border-color:#fecaca;background:#fff5f5;"><div class="ptr-name">delete</div><div class="ptr-val">—</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 8 — REMOVE WITH COUNT -->
+<div class="slide" id="s8">
+  <div class="ll-wrap">
+    <div class="sl-title"><span>remove(key, count)</span> — flexible deletion</div>
+
+    <div class="panel" id="s8-p1">
+      <div class="ll-split wide">
+        <div class="code-block" id="s8-code">
+<span class="ty">int</span> <span class="ty">SinglyLinkedList</span>::remove(</span>
+<span class="code-line" data-line="1">    <span class="ty">int</span> key, <span class="ty">int</span> count) {</span>
+<span class="code-line" data-line="2">    <span class="ty">int</span> deleted = <span class="num">0</span>;</span>
+<span class="code-line" data-line="3">    <span class="kw">if</span> (count == <span class="num">0</span>) <span class="kw">return</span> <span class="num">0</span>;</span>
+<span class="code-line" data-line="4">    <span class="kw">while</span> (count == <span class="num">-1</span> || deleted &lt; count) {</span>
+<span class="code-line" data-line="5">        <span class="kw">if</span> (!removeOne(key)) <span class="kw">break</span>;</span>
+<span class="code-line" data-line="6">        deleted++;</span>
+<span class="code-line" data-line="7">    }</span>
+<span class="code-line" data-line="8">    <span class="kw">return</span> deleted;</span>
+<span class="code-line" data-line="9">}</span>
+<span class="code-line" data-line="10"></span>
+<span class="cm">// count = -1  → delete ALL matching keys</span>
+<span class="cm">// count =  N  → delete at most N matching keys</span>
+        </div>
+        <div>
+          <div class="del-demo">
+            <button class="del-btn active" id="s8-b1" onclick="s8Demo(1)">remove(20, 1)</button>
+            <button class="del-btn" id="s8-b2" onclick="s8Demo(2)">remove(20, 2)</button>
+            <button class="del-btn" id="s8-b3" onclick="s8Demo(-1)">remove(20, -1)</button>
+          </div>
+          <div class="ll-canvas-wrap" style="margin-top:12px;"><canvas id="s8-canvas"></canvas></div>
+          <div class="trace-bar" id="s8-trace">remove(20, 1): delete first occurrence only → return 1</div>
+          <div class="ptr-box">
+            <div class="ptr-item" id="s8-deleted"><div class="ptr-name">deleted</div><div class="ptr-val">0</div></div>
+            <div class="ptr-item" id="s8-return"><div class="ptr-name">return</div><div class="ptr-val">—</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 9 — COMPLEXITY -->
+<div class="slide" id="s9">
+  <div class="ll-wrap">
+    <div class="sl-title">Time <span>Complexity</span> — interactive explorer</div>
+
+    <div class="panel" id="s9-p1">
+      <div class="n-slider-row">
+        <label>List size (n)</label>
+        <input type="range" id="s9-n" min="1" max="20" value="5" oninput="s9Update()"/>
+        <div class="n-val" id="s9-nval">5</div>
+      </div>
+
+      <div class="complex-grid">
+        <div class="cpx-card">
+          <h4>insert(val)</h4>
+          <div class="cpx-row">
+            <span class="cpx-name">Time</span>
+            <div class="cpx-track"><div class="cpx-fill" id="s9-bar-ins" style="width:12%;background:#1D9E75;"></div></div>
+            <span class="cpx-badge cpx-o1" id="s9-cpx-ins">O(1)</span>
+          </div>
+          <p style="font-size:11px;color:#6b7280;margin-top:6px;">Tail pointer → append without traversal</p>
+        </div>
+        <div class="cpx-card">
+          <h4>find(key)</h4>
+          <div class="cpx-row">
+            <span class="cpx-name">Time</span>
+            <div class="cpx-track"><div class="cpx-fill" id="s9-bar-find" style="width:35%;background:#f59e0b;"></div></div>
+            <span class="cpx-badge cpx-on" id="s9-cpx-find">O(n)</span>
+          </div>
+          <p style="font-size:11px;color:#6b7280;margin-top:6px;">Worst case: visit all n nodes</p>
+        </div>
+        <div class="cpx-card">
+          <h4>count(key)</h4>
+          <div class="cpx-row">
+            <span class="cpx-name">Time</span>
+            <div class="cpx-track"><div class="cpx-fill" id="s9-bar-cnt" style="width:50%;background:#f59e0b;"></div></div>
+            <span class="cpx-badge cpx-on" id="s9-cpx-cnt">O(n)</span>
+          </div>
+          <p style="font-size:11px;color:#6b7280;margin-top:6px;">Must scan entire list always</p>
+        </div>
+        <div class="cpx-card">
+          <h4>remove(key, count)</h4>
+          <div class="cpx-row">
+            <span class="cpx-name">Time</span>
+            <div class="cpx-track"><div class="cpx-fill" id="s9-bar-rm" style="width:40%;background:#f59e0b;"></div></div>
+            <span class="cpx-badge cpx-on" id="s9-cpx-rm">O(n)</span>
+          </div>
+          <p style="font-size:11px;color:#6b7280;margin-top:6px;">Each deletion may scan; count=-1 → O(n×k)</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="s9-p2">
+      <div class="panel-title">Simulated operations at n = <span id="s9-nlabel">5</span></div>
+      <div class="ll-canvas-wrap"><canvas id="s9-canvas"></canvas></div>
+      <div class="trace-bar" id="s9-trace">Drag slider to see how traversal steps grow with n</div>
+      <table class="loss-table" style="margin-top:12px;">
+        <tr><th>Operation</th><th>Best</th><th>Average</th><th>Worst</th><th>Steps @ n</th></tr>
+        <tr><td>insert</td><td>O(1)</td><td>O(1)</td><td>O(1)</td><td id="s9-steps-ins">1</td></tr>
+        <tr><td>find</td><td>O(1)</td><td>O(n)</td><td>O(n)</td><td id="s9-steps-find">3</td></tr>
+        <tr><td>count</td><td>O(n)</td><td>O(n)</td><td>O(n)</td><td id="s9-steps-cnt">5</td></tr>
+        <tr><td>remove</td><td>O(1)</td><td>O(n)</td><td>O(n)</td><td id="s9-steps-rm">3</td></tr>
+      </table>
+    </div>
+
+    <div class="panel" id="s9-p3">
+      <div class="fin-note" style="max-width:800px;">
+        <strong>Key takeaway:</strong> Linked lists excel at O(1) insertion with a tail pointer,
+        but search/count/remove require linear traversal — unlike arrays, you cannot jump to index i in O(1).
+        Nodes live at scattered addresses — a <em>non-linear</em> data structure.
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 10 — CHUNKED DYNAMIC ARRAY -->
+<div class="slide" id="s10">
+  <div class="ll-wrap">
+    <div class="sl-title">Chunked <span>Dynamic Array</span></div>
+
+    <div class="panel" id="s10-p1">
+      <div class="panel-kick">Idea</div>
+      <div class="panel-title">Fixed-width chunks linked together — grows without reallocating one giant block</div>
+      <p class="panel-sub" style="text-align:center;max-width:720px;margin:0 auto 12px;">
+        Each chunk holds up to <strong>100</strong> elements. When a chunk is full, allocate a new chunk and link it — just like a linked list, but each node is an array.
+      </p>
+    </div>
+
+    <div class="panel" id="s10-p2">
+      <div class="panel-kick">Structs</div>
+      <div class="ll-split wide">
+        <div class="code-block" id="s10-code" style="font-size:10.5px;">
+<span class="kw">const int</span> CHUNK_SIZE = <span class="num">100</span>;
+
+<span class="kw">struct</span> <span class="ty">ArrayChunk</span> {
+<span class="code-line" data-line="1">    <span class="ty">int</span> data[CHUNK_SIZE];</span>
+<span class="code-line" data-line="2">    <span class="ty">int</span> count;          <span class="cm">// filled slots (0–100)</span></span>
+<span class="code-line" data-line="3">    <span class="ty">ArrayChunk</span>* next;</span>
+<span class="code-line" data-line="4">};</span>
+
+<span class="kw">struct</span> <span class="ty">DynamicArray</span> {
+<span class="code-line" data-line="5">    <span class="ty">ArrayChunk</span>* head;</span>
+<span class="code-line" data-line="6">    <span class="ty">ArrayChunk</span>* tail;</span>
+<span class="code-line" data-line="7">    <span class="ty">int</span> total;           <span class="cm">// elements across all chunks</span></span>
+<span class="code-line" data-line="8">};</span>
+        </div>
+        <div class="ptr-box" style="flex-direction:column;align-items:stretch;">
+          <div class="ptr-item"><div class="ptr-name">head</div><div class="ptr-val" id="s10-head-val">nullptr</div></div>
+          <div class="ptr-item"><div class="ptr-name">tail</div><div class="ptr-val" id="s10-tail-val">nullptr</div></div>
+          <div class="ptr-item highlight"><div class="ptr-name">total</div><div class="ptr-val" id="s10-total-val">0</div></div>
+          <div class="ptr-item"><div class="ptr-name">chunks</div><div class="ptr-val" id="s10-chunk-count">0</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="s10-p3">
+      <div class="panel-kick">Live demo</div>
+      <div class="n-slider-row">
+        <label>Elements inserted</label>
+        <input type="range" id="s10-count" min="0" max="320" value="0" oninput="s10UpdateCount(parseInt(this.value,10))"/>
+        <div class="n-val" id="s10-count-val">0</div>
+      </div>
+      <div class="s10-quick-btns">
+        <button class="del-btn" onclick="s10UpdateCount(50)">+50</button>
+        <button class="del-btn" onclick="s10UpdateCount(100)">100 (full)</button>
+        <button class="del-btn" onclick="s10UpdateCount(101)">101 (new chunk!)</button>
+        <button class="del-btn" onclick="s10UpdateCount(200)">200</button>
+        <button class="del-btn" onclick="s10UpdateCount(250)">250</button>
+        <button class="del-btn" onclick="s10UpdateCount(0)">reset</button>
+      </div>
+      <div class="ll-canvas-wrap" style="margin-top:10px;"><canvas id="s10-canvas"></canvas></div>
+      <div class="trace-bar" id="s10-trace">Insert elements into the tail chunk — when count hits 100, a new ArrayChunk is linked.</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 11 — APPLICABILITY -->
+<div class="slide" id="s11">
+  <div class="ll-wrap">
+    <div class="sl-title">When is <span>chunked growth</span> applicable?</div>
+
+    <div class="panel" id="s11-p1">
+      <div class="fit-grid">
+        <div class="fit-card fit-good">
+          <h4>✓ Good fit</h4>
+          <ul>
+            <li><strong>Append-heavy</strong> — logs, streams, event buffers</li>
+            <li>Avoid occasional <strong>large realloc + copy</strong> of entire array</li>
+            <li>Size grows unpredictably; copying 1M elements is costly</li>
+            <li>Mostly <strong>sequential</strong> access (iterate), not random <code>arr[i]</code></li>
+          </ul>
+        </div>
+        <div class="fit-card fit-bad">
+          <h4>✗ Poor fit</h4>
+          <ul>
+            <li>Frequent <strong>random index</strong> access — <code>arr[50000]</code></li>
+            <li>Need <strong>contiguous</strong> memory (SIMD, GPU, C APIs)</li>
+            <li>Insert/delete in the <strong>middle</strong> often</li>
+            <li>Tight memory — extra <code>next</code> pointer per chunk</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="s11-p2">
+      <div class="decision-box">
+        <div class="panel-kick">Decision rule</div>
+        <p class="decision-quote">
+          Use chunked linked arrays when <span>append cost</span> and <span>realloc pain</span>
+          matter more than <span>random access speed</span>.
+        </p>
+      </div>
+    </div>
+
+    <div class="panel" id="s11-p3">
+      <div class="bridge-card">
+        <strong>Bridge from slide 10:</strong> Same <code>head</code> / <code>tail</code> / <code>next</code> machinery —
+        but each node holds <strong>100 ints</strong> instead of one. Linked list ideas at scale.
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 12 — VS VECTOR -->
+<div class="slide" id="s12">
+  <div class="ll-wrap">
+    <div class="sl-title">Chunked array vs <span>std::vector</span></div>
+
+    <div class="panel" id="s12-p1">
+      <table class="cmp-table" id="s12-table">
+        <tr><th>Property</th><th>Chunked (ArrayChunk list)</th><th>std::vector</th></tr>
+        <tr class="cmp-row" data-row="0" onclick="s12Highlight(0)"><td>Memory layout</td><td>Multiple blocks, linked</td><td>Single contiguous block</td></tr>
+        <tr class="cmp-row" data-row="1" onclick="s12Highlight(1)"><td>Append at end</td><td>O(1) with tail</td><td>O(1) amortized</td></tr>
+        <tr class="cmp-row" data-row="2" onclick="s12Highlight(2)"><td>Index access arr[i]</td><td>O(#chunks) — walk chunks</td><td>O(1)</td></tr>
+        <tr class="cmp-row" data-row="3" onclick="s12Highlight(3)"><td>Growth strategy</td><td>New 100-slot chunk when full</td><td>Realloc + copy to ~2× capacity</td></tr>
+        <tr class="cmp-row" data-row="4" onclick="s12Highlight(4)"><td>Realloc spike</td><td>Avoided — no full copy</td><td>Can copy entire array at once</td></tr>
+        <tr class="cmp-row" data-row="5" onclick="s12Highlight(5)"><td>Cache locality</td><td>Good within chunk; gaps between</td><td>Excellent — all contiguous</td></tr>
+        <tr class="cmp-row" data-row="6" onclick="s12Highlight(6)"><td>C++ standard</td><td>Custom struct (you build it)</td><td>std::vector&lt;T&gt; built-in</td></tr>
+      </table>
+    </div>
+
+    <div class="panel" id="s12-p2">
+      <div class="tabs">
+        <button class="tab-btn active" id="s12-tab-chunk" onclick="s12SetMode('chunk')">Chunked array</button>
+        <button class="tab-btn" id="s12-tab-vec" onclick="s12SetMode('vec')">std::vector</button>
+      </div>
+      <div class="n-slider-row">
+        <label>Elements added</label>
+        <input type="range" id="s12-n" min="0" max="250" value="0" oninput="s12Update()"/>
+        <div class="n-val" id="s12-nval">0</div>
+      </div>
+      <div class="ll-canvas-wrap"><canvas id="s12-canvas"></canvas></div>
+      <div class="trace-bar" id="s12-trace">Chunked: link a new ArrayChunk at 101 — no copying old data.</div>
+    </div>
+
+    <div class="panel" id="s12-p3">
+      <div class="fin-note" style="max-width:760px;">
+        <strong>Takeaway:</strong> <code>std::vector</code> optimizes fast indexing.
+        Chunked lists optimize steady appends without a massive realloc-and-copy.
+        C++ gives you vector for the common case — build chunked when realloc is the problem.
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 13 — REAL WORLD USE CASES -->
+<div class="slide" id="s13">
+  <div class="ll-wrap">
+    <div class="sl-title">Real-world <span>examples</span> — click to expand</div>
+
+    <div class="panel show" id="s13-p1">
+      <div class="uc-grid">
+
+        <div class="uc-card" id="uc-rope">
+          <div class="uc-head" onclick="toggleUc('uc-rope')">
+            <div class="uc-icon" style="background:#eff6ff;">📝</div>
+            <div class="uc-txt"><div class="uc-title">Rope / text editor buffer</div><div class="uc-sub">Xerox Cedar, Xi editor, some IDEs</div></div>
+            <div class="uc-chev">▶</div>
+          </div>
+          <div class="uc-body"><div class="uc-body-in">
+            <p>Large documents stored as a tree or list of <strong>string chunks</strong> instead of one giant char array.</p>
+            <p class="uc-why"><strong>Why chunked:</strong> Insert/delete in the middle of a 10 MB file without shifting millions of characters. Same pointer-linking idea as slide 10.</p>
+          </div></div>
+        </div>
+
+        <div class="uc-card" id="uc-db">
+          <div class="uc-head" onclick="toggleUc('uc-db')">
+            <div class="uc-icon" style="background:#f0fdf4;">🗄️</div>
+            <div class="uc-txt"><div class="uc-title">Database storage pages</div><div class="uc-sub">PostgreSQL, SQLite, B-trees</div></div>
+            <div class="uc-chev">▶</div>
+          </div>
+          <div class="uc-body"><div class="uc-body-in">
+            <p>Data stored in fixed-size <strong>pages</strong> (often 4 KB–16 KB). New rows fill a page; when full, allocate the next page.</p>
+            <p class="uc-why"><strong>Why chunked:</strong> Disk I/O is page-based. Growing a table means adding pages, not reallocating one massive file block.</p>
+          </div></div>
+        </div>
+
+        <div class="uc-card" id="uc-log">
+          <div class="uc-head" onclick="toggleUc('uc-log')">
+            <div class="uc-icon" style="background:#fffbeb;">📋</div>
+            <div class="uc-txt"><div class="uc-title">Log &amp; event streams</div><div class="uc-sub">Kafka segments, WAL, append-only logs</div></div>
+            <div class="uc-chev">▶</div>
+          </div>
+          <div class="uc-body"><div class="uc-body-in">
+            <p>Events appended to the end. When a segment fills (e.g. 1 GB), a <strong>new immutable segment</strong> is created.</p>
+            <p class="uc-why"><strong>Why chunked:</strong> Append-only, never rewrite old data. Readers scan sequentially — rarely need random access to event #4,000,000.</p>
+          </div></div>
+        </div>
+
+        <div class="uc-card" id="uc-alloc">
+          <div class="uc-head" onclick="toggleUc('uc-alloc')">
+            <div class="uc-icon" style="background:#fdf4ff;">🧱</div>
+            <div class="uc-txt"><div class="uc-title">Memory allocators (slab / chunk)</div><div class="uc-sub">jemalloc, Linux slab allocator</div></div>
+            <div class="uc-chev">▶</div>
+          </div>
+          <div class="uc-body"><div class="uc-body-in">
+            <p>Fixed-size <strong>slabs</strong> hold objects of the same size. When a slab is full, allocate a new slab and link it.</p>
+            <p class="uc-why"><strong>Why chunked:</strong> Avoids fragmentation; O(1) alloc from current slab; new slab when exhausted — same chunk-fill pattern.</p>
+          </div></div>
+        </div>
+
+        <div class="uc-card" id="uc-game">
+          <div class="uc-head" onclick="toggleUc('uc-game')">
+            <div class="uc-icon" style="background:#fff5f5;">🎮</div>
+            <div class="uc-txt"><div class="uc-title">Game replay &amp; telemetry</div><div class="uc-sub">Frame buffers, sensor streams</div></div>
+            <div class="uc-chev">▶</div>
+          </div>
+          <div class="uc-body"><div class="uc-body-in">
+            <p>Long play sessions record frame-by-frame state into growing buffers. Writes are append-only for hours.</p>
+            <p class="uc-why"><strong>Why chunked:</strong> Steady writes without periodic copy of a multi-GB buffer. Playback iterates forward, not random access.</p>
+          </div></div>
+        </div>
+
+        <div class="uc-card uc-contrast" id="uc-vec">
+          <div class="uc-head" onclick="toggleUc('uc-vec')">
+            <div class="uc-icon" style="background:#f5f3ff;">⚡</div>
+            <div class="uc-txt"><div class="uc-title">When std::vector wins</div><div class="uc-sub">Contrast — the common case</div></div>
+            <div class="uc-chev">▶</div>
+          </div>
+          <div class="uc-body"><div class="uc-body-in">
+            <p><strong>Game entity lists</strong> — need <code>entities[i]</code> every frame.<br>
+            <strong>Image pixels / math buffers</strong> — SIMD needs contiguous memory.<br>
+            <strong>Graph adjacency with index lookup</strong> — O(1) access is critical.</p>
+            <p class="uc-why"><strong>Rule:</strong> If you index into the data constantly, use <code>std::vector</code>.</p>
+          </div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 14 — CONCLUSION -->
+<div class="slide" id="s14">
+  <div class="ll-wrap" style="justify-content:center;min-height:75vh;">
+    <div class="sl-title">Summary — <span>choose by access pattern</span></div>
+
+    <div class="panel show" id="s14-p1">
+      <div class="fin-flow" style="margin-bottom:20px;">
+        <div class="fin-node" style="border-color:#534AB7;color:#534AB7;">Node</div>
+        <div class="fin-arrow">→</div>
+        <div class="fin-node" style="border-color:#1D9E75;color:#15803d;">SinglyLinkedList</div>
+        <div class="fin-arrow">→</div>
+        <div class="fin-node" style="border-color:#3b82f6;color:#1d4ed8;">ArrayChunk</div>
+        <div class="fin-arrow">→</div>
+        <div class="fin-node" style="border-color:#f59e0b;color:#b45309;">Pick vector or chunked</div>
+      </div>
+
+      <div class="fin-cards">
+        <div class="fin-card">
+          <h4>Singly linked list</h4>
+          <p>1 value per node. O(1) insert with tail. O(n) search/count/remove. Non-linear memory layout.</p>
+        </div>
+        <div class="fin-card">
+          <h4>Chunked dynamic array</h4>
+          <p>100 values per node. O(1) append without full realloc. O(chunks) index. Logs, pages, ropes.</p>
+        </div>
+        <div class="fin-card">
+          <h4>std::vector</h4>
+          <p>Contiguous, O(1) indexing. Default choice in C++. Realloc occasionally. Entities, pixels, math.</p>
+        </div>
+      </div>
+
+      <div class="fin-note" style="margin-top:20px;">
+        <strong>CS2308 takeaway:</strong> Data structures are trade-offs.
+        Linked lists teach pointers and non-linear layout —
+        those same ideas power real systems at scale when you combine them with fixed-size chunks.
+      </div>
+      <div class="s1-name" style="margin-top:24px;">Presented by Keshav · CS2308</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 15 — DOUBLY LINKED LIST INTRO -->
+<div class="slide" id="s15">
+  <div class="ll-wrap">
+    <div class="sl-title">Doubly <span>Linked List</span></div>
+
+    <div class="panel" id="s15-p1">
+      <div class="panel-kick">Upgrade</div>
+      <div class="panel-title">Each node knows both neighbors — <code>prev</code> and <code>next</code></div>
+      <div class="ll-split wide">
+        <div class="code-block" id="s15-code">
+<span class="kw">struct</span> <span class="ty">DLLNode</span> {
+<span class="code-line" data-line="1">    <span class="ty">int</span> data;</span>
+<span class="code-line" data-line="2">    <span class="ty">DLLNode</span>* prev;</span>
+<span class="code-line" data-line="3">    <span class="ty">DLLNode</span>* next;</span>
+<span class="code-line" data-line="4">};</span>
+
+<span class="kw">struct</span> <span class="ty">DoublyLinkedList</span> {
+<span class="code-line" data-line="5">    <span class="ty">DLLNode</span>* head;</span>
+<span class="code-line" data-line="6">    <span class="ty">DLLNode</span>* tail;</span>
+<span class="code-line" data-line="7">};</span>
+        </div>
+        <div class="ll-canvas-wrap"><canvas id="s15-canvas"></canvas></div>
+      </div>
+      <div class="trace-bar" id="s15-trace">Singly: one direction. Doubly: walk forward OR backward.</div>
+    </div>
+
+    <div class="panel" id="s15-p2">
+      <div class="panel-kick">Linking</div>
+      <div class="panel-title">Three nodes — bidirectional arrows</div>
+      <div class="ll-canvas-wrap"><canvas id="s15-canvas2"></canvas></div>
+      <div class="trace-bar ok" id="s15-trace2">Each node: prev points left, next points right. head → 10, tail → 30.</div>
+      <div class="ptr-box">
+        <div class="ptr-item highlight" id="s15-head"><div class="ptr-name">head</div><div class="ptr-val">0x7ffe_a100</div></div>
+        <div class="ptr-item highlight" id="s15-tail"><div class="ptr-name">tail</div><div class="ptr-val">0x7ffe_a140</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 16 — BIDIRECTIONAL TRAVERSAL -->
+<div class="slide" id="s16">
+  <div class="ll-wrap">
+    <div class="sl-title">Walk <span>both ways</span></div>
+
+    <div class="panel" id="s16-p1">
+      <p class="panel-sub" style="text-align:center;max-width:680px;margin:0 auto 10px;">
+        With <code>prev</code>, delete or update a node without scanning from <code>head</code>.
+        Use the buttons to move <strong>curr</strong> forward or backward.
+      </p>
+      <div class="dll-nav">
+        <button class="del-btn" onclick="s16Move(-1)">← prev</button>
+        <button class="del-btn" onclick="s16Move(1)">next →</button>
+        <button class="del-btn" onclick="s16Reset()">reset to head</button>
+      </div>
+      <div class="ll-canvas-wrap" style="margin-top:10px;"><canvas id="s16-canvas"></canvas></div>
+      <div class="trace-bar" id="s16-trace">curr at head (10) — click next → to walk forward</div>
+      <div class="ptr-box">
+        <div class="ptr-item highlight"><div class="ptr-name">curr</div><div class="ptr-val" id="s16-curr">0x7ffe_a100</div></div>
+        <div class="ptr-item"><div class="ptr-name">curr→data</div><div class="ptr-val" id="s16-data">10</div></div>
+      </div>
+    </div>
+
+    <div class="panel" id="s16-p2">
+      <div class="panel-title">Delete middle node <strong>20</strong> — prev makes it easy</div>
+      <div class="ll-canvas-wrap"><canvas id="s16-canvas2"></canvas></div>
+      <div class="trace-bar ok" id="s16-trace2">Found node 20 → prev->next = next; next->prev = prev — no head scan!</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 17 — DLL OPS & USE CASES -->
+<div class="slide" id="s17">
+  <div class="ll-wrap">
+    <div class="sl-title">DLL <span>operations</span> &amp; use cases</div>
+
+    <div class="panel" id="s17-p1">
+      <div class="panel-kick">API exists — watch the list change</div>
+      <div class="dll-ops">
+        <button class="dll-op-btn" onclick="s17Op('insert')">list.insert(40)</button>
+        <button class="dll-op-btn" onclick="s17Op('find')">list.find(20)</button>
+        <button class="dll-op-btn" onclick="s17Op('count')">list.count(20)</button>
+        <button class="dll-op-btn" onclick="s17Op('remove')">list.remove(20)</button>
+        <button class="dll-op-btn dll-reset" onclick="s17Reset()">reset</button>
+      </div>
+      <div class="ll-canvas-wrap" style="margin-top:10px;"><canvas id="s17-canvas"></canvas></div>
+      <div class="trace-bar" id="s17-trace">List: 10 ↔ 20 ↔ 30 — click an operation (implementation assumed)</div>
+      <div class="ptr-box">
+        <div class="ptr-item"><div class="ptr-name">head</div><div class="ptr-val" id="s17-head">0x7ffe_a100</div></div>
+        <div class="ptr-item"><div class="ptr-name">tail</div><div class="ptr-val" id="s17-tail">0x7ffe_a140</div></div>
+        <div class="ptr-item highlight" id="s17-result"><div class="ptr-name">result</div><div class="ptr-val">—</div></div>
+      </div>
+    </div>
+
+    <div class="panel" id="s17-p2">
+      <div class="dll-uses">
+        <div class="dll-use-card"><span>🔙</span><div><strong>Browser history</strong><br>Back &amp; forward buttons = walk prev / next</div></div>
+        <div class="dll-use-card"><span>↩️</span><div><strong>Undo / redo</strong><br>Two-directional action chain</div></div>
+        <div class="dll-use-card"><span>🗂️</span><div><strong>LRU cache</strong><br>Move nodes to front; evict from tail</div></div>
+      </div>
+      <div class="fin-note" style="margin-top:14px;max-width:720px;">
+        <strong>Trade-off:</strong> Extra <code>prev</code> pointer per node (more memory) —
+        but O(1) delete/splice when you already hold a node*. Same insert/find/count/remove API as singly linked.
+      </div>
+      <div class="s1-name" style="margin-top:18px;">Presented by Keshav · CS2308</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 18 — CIRCULAR LINKED LIST INTRO -->
+<div class="slide" id="s18">
+  <div class="ll-wrap">
+    <div class="sl-title">Circular <span>Linked List</span></div>
+
+    <div class="panel" id="s18-p1">
+      <div class="panel-kick">Key idea</div>
+      <div class="panel-title">Last node points back to the first — <code>tail-&gt;next = head</code></div>
+      <p class="panel-sub" style="text-align:center;max-width:640px;margin:0 auto 12px;">
+        No <code>nullptr</code> at the end. The list forms a <strong>ring</strong> — you can keep walking forever.
+      </p>
+    </div>
+
+    <div class="panel" id="s18-p2">
+      <div class="ll-split wide">
+        <div class="code-block" id="s18-code">
+<span class="kw">struct</span> <span class="ty">CircularLinkedList</span> {
+<span class="code-line" data-line="1">    <span class="ty">Node</span>* head;</span>
+<span class="code-line" data-line="2">    <span class="ty">Node</span>* tail;</span>
+<span class="code-line" data-line="3">};</span>
+<span class="code-line" data-line="4"></span>
+<span class="cm">// after building 10 → 20 → 30:</span>
+<span class="code-line" data-line="5">tail-&gt;next = head;  <span class="cm">// close the ring</span></span>
+        </div>
+        <div class="ll-canvas-wrap"><canvas id="s18-canvas"></canvas></div>
+      </div>
+      <div class="trace-bar ok" id="s18-trace">tail (30) → next points to head (10) — the circle is closed!</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 19 — WALK THE RING -->
+<div class="slide" id="s19">
+  <div class="ll-wrap">
+    <div class="sl-title">Walk the <span>ring</span></div>
+
+    <div class="panel" id="s19-p1">
+      <p class="panel-sub" style="text-align:center;max-width:680px;margin:0 auto 10px;">
+        Start at <code>head</code>, call <code>curr = curr-&gt;next</code> repeatedly —
+        after the tail you wrap back to head. Watch the lap counter!
+      </p>
+      <div class="dll-nav">
+        <button class="del-btn" onclick="s19StepFwd()">curr = curr→next</button>
+        <button class="del-btn" onclick="s19Reset()">reset to head</button>
+      </div>
+      <div class="ll-canvas-wrap" style="margin-top:10px;"><canvas id="s19-canvas"></canvas></div>
+      <div class="trace-bar" id="s19-trace">curr at head (10) — step forward around the ring</div>
+      <div class="ptr-box">
+        <div class="ptr-item highlight"><div class="ptr-name">curr</div><div class="ptr-val" id="s19-curr">0x7ffe_a100</div></div>
+        <div class="ptr-item"><div class="ptr-name">data</div><div class="ptr-val" id="s19-data">10</div></div>
+        <div class="ptr-item" id="s19-lap-box"><div class="ptr-name">laps</div><div class="ptr-val" id="s19-laps">0</div></div>
+      </div>
+    </div>
+
+    <div class="panel" id="s19-p2">
+      <div class="q-card">
+        <h3>⚠️ Traversal must stop!</h3>
+        <p>Unlike a linear list, a circular list has <strong>no nullptr</strong> to detect the end.<br>
+        Stop after <code>n</code> steps, or check <code>curr == head</code> again — otherwise infinite loop!</p>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 20 — CLL OPS & USE CASES -->
+<div class="slide" id="s20">
+  <div class="ll-wrap">
+    <div class="sl-title">Circular list <span>ops</span> &amp; uses</div>
+
+    <div class="panel" id="s20-p1">
+      <div class="panel-kick">API assumed — see the ring change</div>
+      <div class="dll-ops">
+        <button class="dll-op-btn" onclick="s20Op('insert')">list.insert(50)</button>
+        <button class="dll-op-btn" onclick="s20Op('find')">list.find(20)</button>
+        <button class="dll-op-btn" onclick="s20Op('remove')">list.remove(20)</button>
+        <button class="dll-op-btn dll-reset" onclick="s20Reset()">reset</button>
+      </div>
+      <div class="ll-canvas-wrap" style="margin-top:10px;"><canvas id="s20-canvas"></canvas></div>
+      <div class="trace-bar" id="s20-trace">Ring: 10 → 20 → 30 → 40 → (back to 10)</div>
+      <div class="ptr-box">
+        <div class="ptr-item"><div class="ptr-name">head</div><div class="ptr-val" id="s20-head">0x7ffe_a100</div></div>
+        <div class="ptr-item"><div class="ptr-name">tail</div><div class="ptr-val" id="s20-tail">0x7ffe_a160</div></div>
+        <div class="ptr-item highlight" id="s20-result"><div class="ptr-name">result</div><div class="ptr-val">—</div></div>
+      </div>
+    </div>
+
+    <div class="panel" id="s20-p2">
+      <div class="dll-uses">
+        <div class="dll-use-card"><span>🔄</span><div><strong>Round-robin scheduler</strong><br>CPU cycles through tasks in a ring — tail→head = next time slice</div></div>
+        <div class="dll-use-card"><span>🎵</span><div><strong>Playlist loop</strong><br>After last song, next points to first track</div></div>
+        <div class="dll-use-card"><span>🎡</span><div><strong>Josephus problem</strong><br>Count around a circle, eliminate every k-th node</div></div>
+      </div>
+      <div class="fin-note" style="margin-top:14px;max-width:720px;">
+        <strong>vs linear list:</strong> Circular lists excel when processing repeats in a cycle.
+        Keep <code>head</code> or <code>tail</code> — either works since the ring has no true end.
+      </div>
+      <div class="s1-name" style="margin-top:18px;">Presented by Keshav · CS2308</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 21 — COMPARISON MATRIX -->
+<div class="slide" id="s21">
+  <div class="ll-wrap">
+    <div class="sl-title">Four list types — <span>side by side</span></div>
+
+    <div class="panel" id="s21-p1">
+      <p class="panel-sub" style="text-align:center;margin-bottom:10px;">Click a <strong>row</strong> for details, or a <strong>column header</strong> to highlight a list type.</p>
+      <div class="cmp-matrix-wrap">
+        <table class="cmp-matrix" id="s21-matrix">
+          <tr>
+            <th></th>
+            <th class="cmp-col" data-type="sll" onclick="s21Col('sll')">Singly</th>
+            <th class="cmp-col" data-type="dll" onclick="s21Col('dll')">Doubly</th>
+            <th class="cmp-col" data-type="cll" onclick="s21Col('cll')">Circular</th>
+            <th class="cmp-col" data-type="cdll" onclick="s21Col('cdll')">Circ. Doubly</th>
+          </tr>
+          <tr class="cmp-mrow" onclick="s21Row(0)"><td>Pointers / node</td><td>1 (next)</td><td>2 (prev, next)</td><td>1 (next)</td><td>2 (prev, next)</td></tr>
+          <tr class="cmp-mrow" onclick="s21Row(1)"><td>End of list</td><td>nullptr</td><td>nullptr</td><td>tail→head</td><td>ring both ways</td></tr>
+          <tr class="cmp-mrow" onclick="s21Row(2)"><td>Walk backward</td><td>✗</td><td>✓</td><td>✗</td><td>✓</td></tr>
+          <tr class="cmp-mrow" onclick="s21Row(3)"><td>Delete @ node*</td><td>O(n) find prev</td><td>O(1)</td><td>O(n)</td><td>O(1)</td></tr>
+          <tr class="cmp-mrow" onclick="s21Row(4)"><td>Memory</td><td>Lowest</td><td>+prev ptr</td><td>Same as SLL</td><td>Most pointers</td></tr>
+          <tr class="cmp-mrow" onclick="s21Row(5)"><td>Loop risk</td><td>None</td><td>None</td><td>Yes — no end!</td><td>Yes — no end!</td></tr>
+        </table>
+      </div>
+      <div class="trace-bar" id="s21-trace">Click any row or column — compare all four linked list variants</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 22 — VISUAL COMPARE -->
+<div class="slide" id="s22">
+  <div class="ll-wrap">
+    <div class="sl-title">Visual <span>comparison</span></div>
+
+    <div class="panel" id="s22-p1">
+      <div class="tabs">
+        <button class="tab-btn active" id="s22-t-sll" onclick="s22Show('sll')">Singly</button>
+        <button class="tab-btn" id="s22-t-dll" onclick="s22Show('dll')">Doubly</button>
+        <button class="tab-btn" id="s22-t-cll" onclick="s22Show('cll')">Circular</button>
+        <button class="tab-btn" id="s22-t-cdll" onclick="s22Show('cdll')">Circ. Doubly</button>
+      </div>
+      <div class="ll-canvas-wrap"><canvas id="s22-canvas"></canvas></div>
+      <div class="trace-bar" id="s22-trace">Singly: one next pointer, ends at nullptr</div>
+      <div class="cmp-pills" id="s22-pills">
+        <span class="cmp-pill">next only</span>
+        <span class="cmp-pill">nullptr end</span>
+        <span class="cmp-pill">head + tail</span>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 23 — REAL WORLD + PICKER -->
+<div class="slide" id="s23">
+  <div class="ll-wrap">
+    <div class="sl-title">Real-world <span>examples</span> &amp; picker</div>
+
+    <div class="panel" id="s23-p1">
+      <div class="rw-grid">
+        <div class="rw-card rw-sll" onclick="s23Pick('sll')">
+          <div class="rw-badge">Singly</div>
+          <h4>Singly Linked List</h4>
+          <ul>
+            <li>Hash table <strong>chaining</strong> (separate chaining)</li>
+            <li>Simple <strong>task / job queues</strong></li>
+            <li>Polynomial arithmetic (sparse terms)</li>
+            <li>Undo stack via insert-at-head</li>
+          </ul>
+        </div>
+        <div class="rw-card rw-dll" onclick="s23Pick('dll')">
+          <div class="rw-badge">Doubly</div>
+          <h4>Doubly Linked List</h4>
+          <ul>
+            <li><strong>Browser</strong> back &amp; forward history</li>
+            <li><strong>Undo / redo</strong> in editors</li>
+            <li><strong>LRU cache</strong> (move-to-front, evict tail)</li>
+            <li>Music player previous track (linear)</li>
+          </ul>
+        </div>
+        <div class="rw-card rw-cll" onclick="s23Pick('cll')">
+          <div class="rw-badge">Circular</div>
+          <h4>Circular Linked List</h4>
+          <ul>
+            <li><strong>Round-robin</strong> CPU scheduling</li>
+            <li><strong>Playlist loop</strong> — last song → first</li>
+            <li><strong>Josephus problem</strong> — eliminate in circle</li>
+            <li>Token-ring networking (conceptual)</li>
+          </ul>
+        </div>
+        <div class="rw-card rw-cdll" onclick="s23Pick('cdll')">
+          <div class="rw-badge">Circ. Doubly</div>
+          <h4>Circular Doubly Linked</h4>
+          <ul>
+            <li>Linux kernel <strong>list_head</strong></li>
+            <li>Advanced <strong>LRU</strong> with O(1) splice</li>
+            <li>Music player <strong>prev + loop</strong></li>
+            <li>Windows kernel linked lists (LIST_ENTRY)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="trace-bar" id="s23-trace" style="margin-top:12px;">Click a card — see when to pick each structure</div>
+    </div>
+
+    <div class="panel" id="s23-p2">
+      <div class="picker-box" id="s23-picker">
+        <div class="panel-kick">Which one?</div>
+        <p class="picker-q" id="s23-q">I need forward-only traversal and minimal memory.</p>
+        <div class="picker-ans" id="s23-ans">→ <strong>Singly linked list</strong></div>
+      </div>
+      <div class="fin-note" style="margin-top:14px;max-width:800px;">
+        <strong>CS2308 recap:</strong> Start with singly linked → add <code>prev</code> for doubly →
+        close the ring for circular → combine both for circular doubly.
+        Pick by <em>access pattern</em>: direction, cycles, and delete requirements.
+      </div>
+      <div class="s1-name" style="margin-top:18px;">Presented by Keshav · CS2308</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 24 — CODING CHALLENGE -->
+<div class="slide" id="s24">
+  <div class="ll-wrap">
+    <div class="sl-title">Coding <span>challenge</span> — what to build</div>
+
+    <div class="panel show" id="s24-p1">
+      <div class="panel-kick">Pick a problem — click to explore</div>
+      <div class="cp-picks">
+        <button class="cp-pick active" id="cp-rev" onclick="s24Pick('reverse')">Reverse list</button>
+        <button class="cp-pick" id="cp-nth" onclick="s24Pick('nth')">Remove nth</button>
+        <button class="cp-pick" id="cp-merge" onclick="s24Pick('merge')">Merge sorted</button>
+      </div>
+      <div class="cp-head" id="s24-title">Reverse a Singly Linked List</div>
+      <div class="cp-meta" id="s24-meta">Uses: SinglyLinkedList · ~45–60 min lab</div>
+      <div class="ll-split wide" style="margin-top:10px;">
+        <div>
+          <div class="cp-label">Before</div>
+          <div class="ll-canvas-wrap"><canvas id="s24-canvas-before"></canvas></div>
+        </div>
+        <div>
+          <div class="cp-label">Ideal result — <button class="del-btn" style="padding:4px 10px;font-size:10px;" onclick="s24ToggleResult()">show →</button></div>
+          <div class="ll-canvas-wrap"><canvas id="s24-canvas-after"></canvas></div>
+        </div>
+      </div>
+      <div class="trace-bar" id="s24-trace">Goal: reverse pointer direction in-place — return new head</div>
+    </div>
+
+    <div class="panel" id="s24-p2">
+      <div class="panel-kick">What you should implement</div>
+      <div class="code-block" id="s24-sig" style="font-size:11px;margin-bottom:10px;">Node* reverse(Node* head);</div>
+      <div class="cp-steps" id="s24-steps"></div>
+      <div class="panel-kick" style="margin-top:12px;">Test cases</div>
+      <div class="cp-tests" id="s24-tests"></div>
+      <div class="fin-note" style="margin-top:12px;" id="s24-hint">
+        <strong>Ideal approach only</strong> — no solution code here. Implement in <code>main.cpp</code> and trace pointers on paper first.
+      </div>
+      <div class="s1-name" style="margin-top:14px;">Good luck · Presented by Keshav · CS2308</div>
+    </div>
+  </div>
+</div>
+<script>
+// ══════════════════════════════════
+// DRAWING ENGINE
+// ══════════════════════════════════
+var dc=document.getElementById('draw-canvas'),dctx=dc.getContext('2d');
+var drawCursor=document.getElementById('draw-cursor');
+var drawing=false,mode='off',penColor='#ef4444',penSize=3,lx=0,ly=0;
+function updateDrawCursorStyle(){
+  if(!drawCursor)return;
+  if(mode==='off'){drawCursor.classList.remove('show','eraser');return;}
+  drawCursor.classList.add('show');
+  drawCursor.classList.toggle('eraser',mode==='eraser');
+  if(mode==='pen'){
+    var size=Math.max(17,penSize*2.5+9);
+    drawCursor.style.width=size+'px';drawCursor.style.height=size+'px';
+    drawCursor.style.borderColor=penColor;drawCursor.style.background='rgba(255,255,255,.90)';
+  }else{drawCursor.style.borderColor='#0f172a';drawCursor.style.background='rgba(255,255,255,.94)';}
+}
+function resizeDC(){var img=dctx.getImageData(0,0,dc.width,dc.height);dc.width=window.innerWidth;dc.height=window.innerHeight;dctx.putImageData(img,0,0);}
+resizeDC();window.addEventListener('resize',resizeDC);updateDrawCursorStyle();
+function setMode(m){if(m==='pointer'){mode='off';}else{mode=mode===m?'off':m;}dc.className=mode==='off'?'':(mode+'-on');['btn-pointer','btn-pen','btn-eraser'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('active');});if(mode==='off')document.getElementById('btn-pointer').classList.add('active');if(mode==='pen')document.getElementById('btn-pen').classList.add('active');if(mode==='eraser')document.getElementById('btn-eraser').classList.add('active');updateDrawCursorStyle();}
+function setColor(c,id){penColor=c;document.querySelectorAll('.cb').forEach(function(b){b.classList.remove('active');});document.getElementById(id).classList.add('active');if(mode!=='pen')setMode('pen');updateDrawCursorStyle();}
+function setSize(s,id){penSize=s;document.querySelectorAll('.sb').forEach(function(b){b.classList.remove('active');});document.getElementById(id).classList.add('active');updateDrawCursorStyle();}
+function clearAll(){dctx.clearRect(0,0,dc.width,dc.height);}
+function getPos(e){var r=dc.getBoundingClientRect();if(e.touches)return{x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top};return{x:e.clientX-r.left,y:e.clientY-r.top};}
+function moveDrawCursor(e){if(!drawCursor||mode==='off')return;var p=getPos(e);drawCursor.style.left=p.x+'px';drawCursor.style.top=p.y+'px';}
+document.addEventListener('mousemove',moveDrawCursor);
+dc.addEventListener('mouseleave',function(){drawing=false;if(drawCursor)drawCursor.classList.remove('show');});
+dc.addEventListener('mouseenter',updateDrawCursorStyle);
+dc.addEventListener('mousedown',function(e){if(mode==='off')return;moveDrawCursor(e);drawing=true;var p=getPos(e);lx=p.x;ly=p.y;});
+dc.addEventListener('mousemove',function(e){if(!drawing||mode==='off')return;var p=getPos(e);dl(lx,ly,p.x,p.y);lx=p.x;ly=p.y;});
+dc.addEventListener('mouseup',function(){drawing=false;});
+dc.addEventListener('touchstart',function(e){e.preventDefault();if(mode==='off')return;moveDrawCursor(e);drawing=true;var p=getPos(e);lx=p.x;ly=p.y;},{passive:false});
+dc.addEventListener('touchmove',function(e){e.preventDefault();if(mode!=='off')moveDrawCursor(e);if(!drawing||mode==='off')return;var p=getPos(e);dl(lx,ly,p.x,p.y);lx=p.x;ly=p.y;},{passive:false});
+dc.addEventListener('touchend',function(){drawing=false;if(drawCursor)drawCursor.classList.remove('show');});
+function dl(x1,y1,x2,y2){dctx.beginPath();if(mode==='eraser'){dctx.globalCompositeOperation='destination-out';dctx.lineWidth=penSize*6;}else{dctx.globalCompositeOperation='source-over';dctx.strokeStyle=penColor;dctx.lineWidth=penSize;}dctx.lineCap='round';dctx.lineJoin='round';dctx.moveTo(x1,y1);dctx.lineTo(x2,y2);dctx.stroke();dctx.globalCompositeOperation='source-over';}
+// ══════════════════════════════════
+// SLIDE ZOOM & SCROLL
+// ══════════════════════════════════
+var zoomMode='page';
+var zoomManual=100;
+var ZOOM_MODE_KEY='linked-list-zoom-mode';
+var ZOOM_MANUAL_KEY='linked-list-zoom-manual';
+
+function getActiveSlide(){
+  return document.querySelector('.slide.active');
+}
+
+function getActiveWrap(){
+  var slide=getActiveSlide();
+  if(!slide)return null;
+  return slide.querySelector('.ll-wrap')||slide.querySelector('.cpp-wrap');
+}
+
+function measureWrap(wrap){
+  var prevTransform=wrap.style.transform;
+  var prevMargin=wrap.style.marginBottom;
+  wrap.style.transform='none';
+  wrap.style.marginBottom='0';
+  var w=wrap.offsetWidth;
+  var h=wrap.scrollHeight;
+  wrap.style.transform=prevTransform;
+  wrap.style.marginBottom=prevMargin;
+  return {w:w,h:h};
+}
+
+function zoomAvailSize(){
+  var slide=getActiveSlide();
+  if(!slide)return {w:window.innerWidth-48,h:window.innerHeight-100};
+  return {w:slide.clientWidth-32,h:slide.clientHeight-24};
+}
+
+function computeAutoScale(mode){
+  var wrap=getActiveWrap();
+  if(!wrap)return 1;
+  var size=measureWrap(wrap);
+  var avail=zoomAvailSize();
+  if(!size.w||!size.h)return 1;
+  if(mode==='width')return avail.w/size.w;
+  if(mode==='height')return avail.h/size.h;
+  return Math.min(avail.w/size.w,avail.h/size.h);
+}
+
+function updateZoomUI(scale){
+  var pct=Math.round(scale*100);
+  var label=document.getElementById('zoom-pct');
+  var slider=document.getElementById('zoom-slider');
+  if(label)label.textContent=pct+'%';
+  if(slider&&zoomMode!=='manual')slider.value=Math.min(200,Math.max(50,pct));
+  if(slider&&zoomMode==='manual')slider.value=zoomManual;
+  document.querySelectorAll('[data-zoom-mode]').forEach(function(btn){
+    btn.classList.toggle('active',btn.getAttribute('data-zoom-mode')===zoomMode);
+  });
+}
+
+function applySlideZoom(){
+  var wrap=getActiveWrap();
+  if(!wrap)return;
+  var size=measureWrap(wrap);
+  var scale=zoomManual/100;
+  if(zoomMode!=='manual'){
+    scale=computeAutoScale(zoomMode);
+    zoomManual=Math.round(scale*100);
+  }
+  scale=Math.max(0.5,Math.min(2,scale));
+  wrap.style.transform='scale('+scale+')';
+  wrap.style.transformOrigin='top center';
+  wrap.style.marginBottom=scale>1?(size.h*(scale-1))+'px':'0';
+  updateZoomUI(scale);
+}
+
+function setZoomMode(mode){
+  zoomMode=mode;
+  try{localStorage.setItem(ZOOM_MODE_KEY,mode);}catch(e){}
+  applySlideZoom();
+}
+
+function setZoomManual(pct){
+  zoomMode='manual';
+  zoomManual=parseInt(pct,10)||100;
+  try{
+    localStorage.setItem(ZOOM_MODE_KEY,'manual');
+    localStorage.setItem(ZOOM_MANUAL_KEY,String(zoomManual));
+  }catch(e){}
+  applySlideZoom();
+}
+
+function resetSlideScroll(){
+  var slide=getActiveSlide();
+  if(slide)slide.scrollTop=0;
+}
+
+function initZoom(){
+  try{zoomMode=localStorage.getItem(ZOOM_MODE_KEY)||'page';}catch(e){}
+  try{zoomManual=parseInt(localStorage.getItem(ZOOM_MANUAL_KEY),10)||100;}catch(e){}
+  var slider=document.getElementById('zoom-slider');
+  if(slider)slider.value=zoomManual;
+  applySlideZoom();
+  var resizeTimer;
+  window.addEventListener('resize',function(){
+    clearTimeout(resizeTimer);
+    resizeTimer=setTimeout(applySlideZoom,120);
+  });
+}
+// ══════════════════════════════════
+// SHARED HELPERS & LINKED LIST VIZ
+// ══════════════════════════════════
+function showEl(id){var el=document.getElementById(id);if(el)el.classList.add('show');}
+function hideEl(id){var el=document.getElementById(id);if(el)el.classList.remove('show');}
+function setInfo(t){document.getElementById('info-bar').textContent=t;}
+function setCounter(t){document.getElementById('counter').textContent=t;}
+
+var LL_ADDRS=['0x7ffe_a100','0x7ffe_a120','0x7ffe_a140','0x7ffe_a160','0x7ffe_a180','0x7ffe_a1a0','0x7ffe_a1c0','0x7ffe_a1e0'];
+
+function hlCode(blockId, lineNum, warn){
+  var block=document.getElementById(blockId);
+  if(!block)return;
+  block.querySelectorAll('.code-line').forEach(function(ln){
+    ln.classList.remove('hl','hl-warn','hl-ptr');
+  });
+  var line=block.querySelector('[data-line="'+lineNum+'"]');
+  if(line)line.classList.add(warn?'hl-warn':(warn===2?'hl-ptr':'hl'));
+}
+
+function clearHl(blockId){
+  var block=document.getElementById(blockId);
+  if(!block)return;
+  block.querySelectorAll('.code-line').forEach(function(ln){
+    ln.classList.remove('hl','hl-warn','hl-ptr');
+  });
+}
+
+function drawLinkedList(canvas, opts){
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#f8fafc';
+  ctx.fillRect(0,0,W,H);
+
+  var nodes=opts.nodes||[];
+  var highlight=opts.highlight!=null?opts.highlight:-1;
+  var removed=opts.removed||[];
+  var ptrLabels=opts.ptrLabels||{};
+  var visitIdx=opts.visitIdx!=null?opts.visitIdx:-1;
+  var nullLabel=opts.nullLabel!==false;
+
+  if(nodes.length===0){
+    ctx.fillStyle='#9ca3af';
+    ctx.font='13px -apple-system,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('empty list (head = nullptr)',W/2,H/2);
+    return;
+  }
+
+  var nodeW=88, nodeH=56, gap=72, startX=40, y=H/2-nodeH/2;
+  var totalW=nodes.length*(nodeW+gap)-gap;
+  if(totalW>W-80){gap=Math.max(36,(W-80-nodes.length*nodeW)/(nodes.length-1||1));totalW=nodes.length*(nodeW+gap)-gap;}
+  startX=Math.max(30,(W-totalW)/2);
+
+  nodes.forEach(function(n,i){
+    var x=startX+i*(nodeW+gap);
+    var isHl=i===highlight;
+    var isVisit=i===visitIdx;
+    var isRemoved=removed.indexOf(i)>=0;
+
+    ctx.fillStyle=isRemoved?'#fee2e2':(isHl?'#ecfdf5':(isVisit?'#eff6ff':'#fff'));
+    ctx.strokeStyle=isHl?'#1D9E75':(isVisit?'#3b82f6':'#534AB7');
+    ctx.lineWidth=isHl||isVisit?2.5:1.5;
+    roundRect(ctx,x,y,nodeW,nodeH,10);
+    ctx.fill();ctx.stroke();
+
+    ctx.fillStyle='#9ca3af';
+    ctx.font='9px Courier New,monospace';
+    ctx.textAlign='center';
+    ctx.fillText(n.addr||LL_ADDRS[i]||('0x'+((0x7ffea100+i*0x20).toString(16))),x+nodeW/2,y-6);
+
+    ctx.fillStyle='#534AB7';
+    ctx.font='bold 10px -apple-system,sans-serif';
+    ctx.fillText('data',x+nodeW*0.28,y+18);
+    ctx.fillText('next',x+nodeW*0.72,y+18);
+
+    ctx.fillStyle='#1a1a2e';
+    ctx.font='bold 16px Courier New,monospace';
+    ctx.fillText(String(n.data),x+nodeW*0.28,y+38);
+
+    if(i<nodes.length-1){
+      ctx.fillStyle='#6b7280';
+      ctx.font='11px Courier New,monospace';
+      ctx.fillText('→',x+nodeW*0.72,y+38);
+    }else if(nullLabel){
+      ctx.fillStyle='#9ca3af';
+      ctx.font='10px Courier New,monospace';
+      ctx.fillText('null',x+nodeW*0.72,y+38);
+    }
+
+    if(i<nodes.length-1){
+      var ax=x+nodeW+4, ay=y+nodeH/2;
+      var bx=x+nodeW+gap-4;
+      ctx.strokeStyle=isHl&&i===highlight?'#1D9E75':'#94a3b8';
+      ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(ax,ay);ctx.lineTo(bx,ay);
+      ctx.stroke();
+      drawArrowHead(ctx,bx,ay,'#94a3b8');
+    }
+  });
+
+  if(ptrLabels.head!=null){
+    drawPtrLabel(ctx, startX, y-28, 'head', ptrLabels.head, ptrLabels.headHl);
+  }
+  if(ptrLabels.tail!=null){
+    var tailX=startX+(nodes.length-1)*(nodeW+gap);
+    drawPtrLabel(ctx, tailX, y-28, 'tail', ptrLabels.tail, ptrLabels.tailHl);
+  }
+  if(ptrLabels.curr!=null){
+    var ci=ptrLabels.currIdx!=null?ptrLabels.currIdx:visitIdx;
+    if(ci>=0&&ci<nodes.length){
+      var cx=startX+ci*(nodeW+gap);
+      drawPtrLabel(ctx, cx, y+nodeH+14, 'curr', ptrLabels.curr, true);
+    }
+  }
+  if(ptrLabels.prev!=null&&ptrLabels.prevIdx!=null&&ptrLabels.prevIdx>=0){
+    var px=startX+ptrLabels.prevIdx*(nodeW+gap);
+    drawPtrLabel(ctx, px, y+nodeH+14, 'prev', ptrLabels.prev, true);
+  }
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function drawArrowHead(ctx,x,y,color,ux,uy){
+  ctx.fillStyle=color;
+  if(ux==null){ux=1;uy=0;}
+  var px=-uy,py=ux;
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+  ctx.lineTo(x-ux*8+px*4,y-uy*8+py*4);
+  ctx.lineTo(x-ux*8-px*4,y-uy*8-py*4);
+  ctx.closePath();ctx.fill();
+}
+
+function drawPtrLabel(ctx,x,y,name,val,hl){
+  ctx.fillStyle=hl?'#1D9E75':'#534AB7';
+  ctx.font='bold 9px -apple-system,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText(name,x+44,y);
+  ctx.fillStyle='#1a1a2e';
+  ctx.font='10px Courier New,monospace';
+  ctx.fillText(val,x+44,y+12);
+}
+
+function setupLLCanvas(id){
+  var c=document.getElementById(id);
+  if(!c)return null;
+  var wrap=c.parentElement;
+  var w=wrap?wrap.clientWidth-24:600;
+  c.width=Math.max(400,w);
+  c.height=160;
+  return c;
+}
+
+function bigO(n){
+  if(n<=1)return 'O(1)';
+  if(n<=10)return 'O(n)';
+  if(n<=100)return 'O(n)';
+  return 'O(n)';
+}
+
+function opsForN(n, op){
+  if(op==='insert')return n;
+  if(op==='find')return Math.ceil(n/2);
+  if(op==='count')return n;
+  if(op==='remove')return Math.ceil(n/2);
+  return n;
+}
+
+function cpxClass(complexity){
+  if(complexity==='O(1)')return 'cpx-o1';
+  if(complexity==='O(n)')return 'cpx-on';
+  return 'cpx-oworst';
+}
+
+function cpxBarWidth(complexity,n){
+  if(complexity==='O(1)')return 12;
+  return Math.min(100,8+n*3);
+}
+
+function cpxColor(complexity){
+  if(complexity==='O(1)')return '#1D9E75';
+  if(complexity==='O(n)')return '#f59e0b';
+  return '#ef4444';
+}
+
+function drawDoublyLinkedList(canvas, opts){
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#f8fafc';
+  ctx.fillRect(0,0,W,H);
+
+  var nodes=opts.nodes||[];
+  var highlight=opts.highlight!=null?opts.highlight:-1;
+  var visitIdx=opts.visitIdx!=null?opts.visitIdx:-1;
+  var removed=opts.removed||[];
+  var ptrLabels=opts.ptrLabels||{};
+  var showPrev=opts.showPrev!==false;
+
+  if(nodes.length===0){
+    ctx.fillStyle='#9ca3af';
+    ctx.font='13px -apple-system,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('empty list (head = tail = nullptr)',W/2,H/2);
+    return;
+  }
+
+  var nodeW=108, nodeH=58, gap=80, startX=36, y=H/2-nodeH/2-8;
+  var totalW=nodes.length*(nodeW+gap)-gap;
+  if(totalW>W-60){gap=Math.max(44,(W-60-nodes.length*nodeW)/(nodes.length-1||1));totalW=nodes.length*(nodeW+gap)-gap;}
+  startX=Math.max(24,(W-totalW)/2);
+
+  nodes.forEach(function(n,i){
+    var x=startX+i*(nodeW+gap);
+    var isHl=i===highlight;
+    var isVisit=i===visitIdx;
+    var isRemoved=removed.indexOf(i)>=0;
+
+    ctx.fillStyle=isRemoved?'#fee2e2':(isHl?'#ecfdf5':(isVisit?'#eff6ff':'#fff'));
+    ctx.strokeStyle=isHl?'#1D9E75':(isVisit?'#3b82f6':'#534AB7');
+    ctx.lineWidth=isHl||isVisit?2.5:1.5;
+    roundRect(ctx,x,y,nodeW,nodeH,10);
+    ctx.fill();ctx.stroke();
+
+    ctx.fillStyle='#9ca3af';
+    ctx.font='9px Courier New,monospace';
+    ctx.textAlign='center';
+    ctx.fillText(n.addr||LL_ADDRS[i],x+nodeW/2,y-6);
+
+    if(showPrev){
+      ctx.fillStyle='#6b7280';
+      ctx.font='bold 9px -apple-system,sans-serif';
+      ctx.fillText('prev',x+nodeW*0.18,y+16);
+      ctx.fillText('data',x+nodeW*0.5,y+16);
+      ctx.fillText('next',x+nodeW*0.82,y+16);
+      ctx.fillStyle='#1a1a2e';
+      ctx.font='bold 15px Courier New,monospace';
+      ctx.fillText(String(n.data),x+nodeW*0.5,y+38);
+      ctx.fillStyle='#9ca3af';
+      ctx.font='9px Courier New,monospace';
+      ctx.fillText(i>0?'←':'null',x+nodeW*0.18,y+38);
+      ctx.fillText(i<nodes.length-1?'→':'null',x+nodeW*0.82,y+38);
+    }else{
+      ctx.fillStyle='#534AB7';
+      ctx.font='bold 10px -apple-system,sans-serif';
+      ctx.fillText('data',x+nodeW*0.5,y+18);
+      ctx.fillStyle='#1a1a2e';
+      ctx.font='bold 16px Courier New,monospace';
+      ctx.fillText(String(n.data),x+nodeW*0.5,y+40);
+    }
+
+    if(i<nodes.length-1){
+      var ax=x+nodeW+4, ay=y+nodeH/2, bx=x+nodeW+gap-4;
+      ctx.strokeStyle='#534AB7';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,ay);ctx.stroke();
+      drawArrowHead(ctx,bx,ay,'#534AB7');
+      if(showPrev){
+        var py=y+nodeH/2+14;
+        ctx.strokeStyle='#1D9E75';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(bx,py);ctx.lineTo(ax,py);ctx.stroke();
+        drawArrowHead(ctx,ax,py,'#1D9E75');
+      }
+    }
+  });
+
+  if(ptrLabels.head!=null){
+    drawPtrLabel(ctx,startX,y-28,'head',ptrLabels.head,ptrLabels.headHl);
+  }
+  if(ptrLabels.tail!=null){
+    var tx=startX+(nodes.length-1)*(nodeW+gap);
+    drawPtrLabel(ctx,tx,y-28,'tail',ptrLabels.tail,ptrLabels.tailHl);
+  }
+  if(ptrLabels.curr!=null&&visitIdx>=0&&visitIdx<nodes.length){
+    var cx=startX+visitIdx*(nodeW+gap);
+    drawPtrLabel(ctx,cx,y+nodeH+18,'curr',ptrLabels.curr,true);
+  }
+}
+
+function drawCircularLinkedList(canvas, opts){
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#f8fafc';
+  ctx.fillRect(0,0,W,H);
+
+  var nodes=opts.nodes||[];
+  var n=nodes.length;
+  var highlight=opts.highlight!=null?opts.highlight:-1;
+  var visitIdx=opts.visitIdx!=null?opts.visitIdx:-1;
+  var ptrLabels=opts.ptrLabels||{};
+  var showReturn=opts.showReturn!==false;
+  var returnHl=opts.returnHl||false;
+
+  if(n===0){
+    ctx.fillStyle='#9ca3af';
+    ctx.font='13px -apple-system,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('empty circular list',W/2,H/2);
+    return;
+  }
+
+  var cx=W/2, cy=H/2+6;
+  var radius=Math.min(W,H)*0.34;
+  var nodeW=72, nodeH=48;
+  var positions=[];
+  for(var i=0;i<n;i++){
+    var angle=-Math.PI/2+(2*Math.PI*i/n);
+    positions.push({x:cx+radius*Math.cos(angle),y:cy+radius*Math.sin(angle),angle:angle});
+  }
+
+  function drawEdge(from,to,isReturn){
+    var fx=positions[from].x, fy=positions[from].y;
+    var tx=positions[to].x, ty=positions[to].y;
+    var dx=tx-fx, dy=ty-fy;
+    var len=Math.sqrt(dx*dx+dy*dy)||1;
+    var ux=dx/len, uy=dy/len;
+    var ax=fx+ux*(nodeW/2+4), ay=fy+uy*(nodeH/2+4);
+    var bx=tx-ux*(nodeW/2+8), by=ty-uy*(nodeH/2+8);
+    ctx.strokeStyle=isReturn?(returnHl?'#f59e0b':'#94a3b8'):'#534AB7';
+    ctx.lineWidth=isReturn?(returnHl?3:2):2;
+    if(isReturn&&returnHl){ctx.setLineDash([6,4]);}else{ctx.setLineDash([]);}
+    ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+    ctx.setLineDash([]);
+    var headX=bx, headY=by;
+    drawArrowHead(ctx,headX,headY,isReturn?(returnHl?'#f59e0b':'#94a3b8'):'#534AB7',ux,uy);
+    if(isReturn){
+      ctx.fillStyle=returnHl?'#f59e0b':'#9ca3af';
+      ctx.font='bold 9px -apple-system,sans-serif';
+      ctx.textAlign='center';
+      var mx=(ax+bx)/2, my=(ay+by)/2;
+      ctx.fillText('tail→next',mx,my-8);
+    }
+  }
+
+  for(var e=0;e<n;e++){
+    var next=(e+1)%n;
+    drawEdge(e,next,e===n-1&&showReturn);
+  }
+
+  nodes.forEach(function(nd,i){
+    var p=positions[i];
+    var x=p.x-nodeW/2, y=p.y-nodeH/2;
+    var isHl=i===highlight;
+    var isVisit=i===visitIdx;
+    var isHead=i===0;
+    var isTail=i===n-1;
+
+    ctx.fillStyle=isHl?'#ecfdf5':(isVisit?'#eff6ff':'#fff');
+    ctx.strokeStyle=isHl?'#1D9E75':(isVisit?'#3b82f6':(isHead||isTail?'#534AB7':'#7c6fe0'));
+    ctx.lineWidth=isHl||isVisit?2.5:1.5;
+    roundRect(ctx,x,y,nodeW,nodeH,9);
+    ctx.fill();ctx.stroke();
+
+    if(isHead){ctx.fillStyle='#534AB7';ctx.font='bold 8px -apple-system,sans-serif';ctx.textAlign='center';ctx.fillText('head',p.x,y-4);}
+    if(isTail){ctx.fillStyle='#1D9E75';ctx.font='bold 8px -apple-system,sans-serif';ctx.textAlign='center';ctx.fillText('tail',p.x,y+nodeH+10);}
+
+    ctx.fillStyle='#9ca3af';
+    ctx.font='8px Courier New,monospace';
+    ctx.textAlign='center';
+    ctx.fillText(nd.addr||LL_ADDRS[i],p.x,y+14);
+
+    ctx.fillStyle='#1a1a2e';
+    ctx.font='bold 15px Courier New,monospace';
+    ctx.fillText(String(nd.data),p.x,y+32);
+  });
+
+  if(ptrLabels.head!=null&&n>0){
+    drawPtrLabel(ctx,positions[0].x-nodeW/2,positions[0].y-nodeH/2-22,'head',ptrLabels.head,ptrLabels.headHl);
+  }
+  if(ptrLabels.tail!=null&&n>0){
+    drawPtrLabel(ctx,positions[n-1].x+nodeW/2-44,positions[n-1].y-nodeH/2-22,'tail',ptrLabels.tail,ptrLabels.tailHl);
+  }
+  if(ptrLabels.curr!=null&&visitIdx>=0){
+    drawPtrLabel(ctx,positions[visitIdx].x,positions[visitIdx].y+nodeH/2+18,'curr',ptrLabels.curr,true);
+  }
+}
+
+function drawCircularDoublyLinkedList(canvas, opts){
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#f8fafc';
+  ctx.fillRect(0,0,W,H);
+
+  var nodes=opts.nodes||[];
+  var n=nodes.length;
+  var highlight=opts.highlight!=null?opts.highlight:-1;
+  var visitIdx=opts.visitIdx!=null?opts.visitIdx:-1;
+  var ptrLabels=opts.ptrLabels||{};
+  var returnHl=opts.returnHl!==false;
+
+  if(n===0){
+    ctx.fillStyle='#9ca3af';
+    ctx.font='13px -apple-system,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('empty circular doubly linked list',W/2,H/2);
+    return;
+  }
+
+  var cx=W/2, cy=H/2+4;
+  var radius=Math.min(W,H)*0.32;
+  var nodeW=76, nodeH=50;
+  var positions=[];
+  for(var i=0;i<n;i++){
+    var angle=-Math.PI/2+(2*Math.PI*i/n);
+    positions.push({x:cx+radius*Math.cos(angle),y:cy+radius*Math.sin(angle)});
+  }
+
+  function drawRingEdge(from,to,fwd){
+    var fx=positions[from].x, fy=positions[from].y;
+    var tx=positions[to].x, ty=positions[to].y;
+    var dx=tx-fx, dy=ty-fy;
+    var len=Math.sqrt(dx*dx+dy*dy)||1;
+    var ux=dx/len, uy=dy/len;
+    var off=fwd?10:-10;
+    var px=-uy*off, py=ux*off;
+    var ax=fx+ux*(nodeW/2+2)+px, ay=fy+uy*(nodeH/2+2)+py;
+    var bx=tx-ux*(nodeW/2+6)+px, by=ty-uy*(nodeH/2+6)+py;
+    var isReturn=(from===n-1&&to===0)||(from===0&&to===n-1);
+    var col=fwd?'#534AB7':'#1D9E75';
+    if(isReturn&&returnHl)col=fwd?'#f59e0b':'#16a34a';
+    ctx.strokeStyle=col;
+    ctx.lineWidth=isReturn&&returnHl?2.5:1.5;
+    if(isReturn&&returnHl&&fwd)ctx.setLineDash([5,4]);else ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+    ctx.setLineDash([]);
+    drawArrowHead(ctx,bx,by,col,ux,uy);
+  }
+
+  for(var e=0;e<n;e++){
+    drawRingEdge(e,(e+1)%n,true);
+    drawRingEdge((e+1)%n,e,false);
+  }
+
+  nodes.forEach(function(nd,i){
+    var p=positions[i];
+    var x=p.x-nodeW/2, y=p.y-nodeH/2;
+    var isHl=i===highlight;
+    var isVisit=i===visitIdx;
+    ctx.fillStyle=isHl?'#ecfdf5':(isVisit?'#eff6ff':'#fff');
+    ctx.strokeStyle=isHl?'#1D9E75':(isVisit?'#3b82f6':'#534AB7');
+    ctx.lineWidth=isHl||isVisit?2.5:1.5;
+    roundRect(ctx,x,y,nodeW,nodeH,9);
+    ctx.fill();ctx.stroke();
+    if(i===0){ctx.fillStyle='#534AB7';ctx.font='bold 8px -apple-system,sans-serif';ctx.textAlign='center';ctx.fillText('head',p.x,y-4);}
+    ctx.fillStyle='#9ca3af';
+    ctx.font='7.5px Courier New,monospace';
+    ctx.fillText(nd.addr||LL_ADDRS[i],p.x,y+13);
+    ctx.fillStyle='#6b7280';
+    ctx.font='bold 7px -apple-system,sans-serif';
+    ctx.fillText('p | d | n',p.x,y+24);
+    ctx.fillStyle='#1a1a2e';
+    ctx.font='bold 14px Courier New,monospace';
+    ctx.fillText(String(nd.data),p.x,y+40);
+  });
+
+  ctx.fillStyle='#6b7280';
+  ctx.font='9px -apple-system,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('purple = next  ·  green = prev  ·  head->prev = tail',W/2,H-10);
+
+  if(ptrLabels.head!=null&&n>0){
+    drawPtrLabel(ctx,positions[0].x,positions[0].y-nodeH/2-20,'head',ptrLabels.head,ptrLabels.headHl);
+  }
+}
+
+var CMP_NODES=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'}];
+var CMP_NODES4=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'},{data:40,addr:'0x7ffe_a160'}];
+
+function drawListComparison(canvas, type){
+  if(!canvas)return;
+  if(type==='sll'){
+    canvas.height=170;
+    drawLinkedList(canvas,{nodes:CMP_NODES,nullLabel:true,ptrLabels:{head:'0x7ffe_a100',tail:'0x7ffe_a140',headHl:true,tailHl:true}});
+  }else if(type==='dll'){
+    canvas.height=190;
+    drawDoublyLinkedList(canvas,{nodes:CMP_NODES,ptrLabels:{head:'0x7ffe_a100',tail:'0x7ffe_a140',headHl:true,tailHl:true}});
+  }else if(type==='cll'){
+    canvas.height=280;
+    drawCircularLinkedList(canvas,{nodes:CMP_NODES4,returnHl:true,ptrLabels:{head:'0x7ffe_a100',tail:'0x7ffe_a160',headHl:true,tailHl:true}});
+  }else if(type==='cdll'){
+    canvas.height=300;
+    drawCircularDoublyLinkedList(canvas,{nodes:CMP_NODES,returnHl:true,ptrLabels:{head:'0x7ffe_a100',headHl:true}});
+  }
+}
+
+// ══════════════════════════════════
+// CODE BLOCK CHROME (theme + line numbers + presenter edit)
+// ══════════════════════════════════
+var codeTheme='dark';
+var codeShowLines=true;
+var CODE_THEME_KEY='linked-list-code-theme';
+var CODE_LINES_KEY='linked-list-code-lines';
+var CODE_EDIT_KEY='linked-list-code:';
+
+var CODE_ICON_SUN='<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 2v1.2M8 12.8V14M2 8h1.2M12.8 8H14M3.8 3.8l.85.85M11.35 11.35l.85.85M3.8 12.2l.85-.85M11.35 4.65l.85-.85" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+var CODE_ICON_MOON='<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.2 10.4a5.2 5.2 0 01-6.6-6.6A5.2 5.2 0 1012.2 10.4z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+var CODE_ICON_LN='<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5h1.2v1.2H3.5V3.5zm0 4h1.2v1.2H3.5V7.5zm0 4h1.2v1.2H3.5v-1.2z" fill="currentColor"/><path d="M7.5 4.2h6M7.5 8h6M7.5 11.8h6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/></svg>';
+var CODE_ICON_EDIT='<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M11.1 2.5a1.2 1.2 0 011.7 1.7l-7.2 7.2-2.3.6.6-2.3 7.2-7.2z" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/></svg>';
+
+function codeThemeIcon(theme){return theme==='dark'?CODE_ICON_SUN:CODE_ICON_MOON;}
+
+function prepareCodeBlockLines(block){
+  if(block.dataset.linesPrepared)return;
+  var existing=block.querySelectorAll('.code-line');
+  if(existing.length){
+    var n=0;
+    existing.forEach(function(line){
+      if(!line.hasAttribute('data-line')){n++;line.setAttribute('data-line',String(n));}
+    });
+    block.dataset.linesPrepared='1';
+    return;
+  }
+  var parts=[];
+  block.childNodes.forEach(function(n){
+    if(n.nodeType===1&&n.classList&&n.classList.contains('code-block-toolbar'))return;
+    if(n.nodeType===1)parts.push(n.outerHTML);
+    else if(n.nodeType===3)parts.push(n.textContent);
+  });
+  var html=parts.join('').trim();
+  if(!html){block.dataset.linesPrepared='1';return;}
+  var lines=html.split('\n');
+  var n=0;
+  var wrapped=lines.map(function(line){
+    n++;
+    if(line.trim()==='')return '<span class="code-line" data-line="'+n+'"></span>';
+    return '<span class="code-line" data-line="'+n+'">'+line+'</span>';
+  }).join('');
+  var toolbar=block.querySelector('.code-block-toolbar');
+  block.textContent='';
+  if(toolbar)block.appendChild(toolbar);
+  block.insertAdjacentHTML('beforeend',wrapped);
+  block.dataset.linesPrepared='1';
+}
+
+function applyCodeTheme(theme){
+  codeTheme=theme;
+  try{localStorage.setItem(CODE_THEME_KEY,theme);}catch(e){}
+  document.querySelectorAll('.code-block').forEach(function(block){
+    block.classList.toggle('theme-light',theme==='light');
+    var btn=block.querySelector('.code-theme-btn');
+    if(btn){
+      btn.innerHTML=codeThemeIcon(theme);
+      btn.title=theme==='dark'?'Light code theme':'Dark code theme';
+      btn.setAttribute('aria-label',btn.title);
+      btn.setAttribute('aria-pressed',theme==='light'?'true':'false');
+    }
+  });
+}
+
+function applyCodeLines(show){
+  codeShowLines=!!show;
+  try{localStorage.setItem(CODE_LINES_KEY,show?'1':'0');}catch(e){}
+  document.querySelectorAll('.code-block').forEach(function(block){
+    block.classList.toggle('show-lines',codeShowLines);
+    var btn=block.querySelector('.code-ln-btn');
+    if(btn){
+      btn.classList.toggle('active',codeShowLines);
+      btn.title=codeShowLines?'Hide line numbers':'Show line numbers';
+      btn.setAttribute('aria-label',btn.title);
+      btn.setAttribute('aria-pressed',codeShowLines?'true':'false');
+    }
+  });
+}
+
+function toggleCodeTheme(){applyCodeTheme(codeTheme==='dark'?'light':'dark');}
+function toggleCodeLines(){applyCodeLines(!codeShowLines);}
+
+function codeEditStorageKey(blockId){return CODE_EDIT_KEY+blockId;}
+function codeEditGetOverride(blockId){try{return localStorage.getItem(codeEditStorageKey(blockId));}catch(e){return null;}}
+function codeEditSetOverride(blockId,text){try{localStorage.setItem(codeEditStorageKey(blockId),text);}catch(e){}}
+function codeEditClearOverride(blockId){try{localStorage.removeItem(codeEditStorageKey(blockId));}catch(e){}}
+
+function escapeCodeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function extractBlockPlainText(block){
+  var lines=block.querySelectorAll('.code-line');
+  if(lines.length)return Array.prototype.map.call(lines,function(ln){return ln.textContent;}).join('\n');
+  var parts=[];
+  block.childNodes.forEach(function(n){
+    if(n.nodeType!==1)return;
+    if(n.classList&&(n.classList.contains('code-block-toolbar')||n.classList.contains('code-block-editor')))return;
+    parts.push(n.textContent);
+  });
+  return parts.join('\n').replace(/^\n+|\n+$/g,'');
+}
+
+function plainToCodeLinesHtml(text){
+  var lines=text.split('\n');
+  var n=0;
+  return lines.map(function(line){
+    n++;
+    if(line==='')return '<span class="code-line" data-line="'+n+'"></span>';
+    return '<span class="code-line" data-line="'+n+'">'+escapeCodeHtml(line)+'</span>';
+  }).join('');
+}
+
+function getCodeBlockToolbar(block){return block.querySelector('.code-block-toolbar');}
+
+function clearCodeBlockBody(block){
+  var toolbar=getCodeBlockToolbar(block);
+  var editor=block.querySelector('.code-block-editor');
+  Array.prototype.slice.call(block.childNodes).forEach(function(n){
+    if(n!==toolbar&&n!==editor)block.removeChild(n);
+  });
+}
+
+function setBlockPlainContent(block,text){
+  clearCodeBlockBody(block);
+  block.insertAdjacentHTML('beforeend',plainToCodeLinesHtml(text));
+  delete block.dataset.linesPrepared;
+  prepareCodeBlockLines(block);
+}
+
+function snapshotBlockDefault(block){
+  if(!block.id||block.dataset.defaultPlain)return;
+  block.dataset.defaultPlain=extractBlockPlainText(block);
+}
+
+function applyCodeOverride(block){
+  if(!block.id)return;
+  var saved=codeEditGetOverride(block.id);
+  if(saved===null)return;
+  setBlockPlainContent(block,saved);
+}
+
+function updateCodeEditBtn(block){
+  var btn=block.querySelector('.code-edit-btn');
+  if(!btn||!block.id)return;
+  var customized=codeEditGetOverride(block.id)!==null;
+  btn.classList.toggle('has-override',customized);
+  btn.title=customized?'Edit code (customized — saved in browser)':'Edit code';
+  btn.setAttribute('aria-label',btn.title);
+}
+
+function codeEditClose(block){
+  block.classList.remove('code-block-editing');
+  var editor=block.querySelector('.code-block-editor');
+  if(editor)editor.remove();
+  var toolbar=getCodeBlockToolbar(block);
+  if(toolbar)toolbar.style.display='';
+}
+
+function codeEditSave(block,ta){
+  codeEditSetOverride(block.id,ta.value);
+  setBlockPlainContent(block,ta.value);
+  codeEditClose(block);
+  updateCodeEditBtn(block);
+  setInfo('Code saved — persists on refresh');
+}
+
+function codeEditRevert(block){
+  codeEditClearOverride(block.id);
+  setBlockPlainContent(block,block.dataset.defaultPlain||'');
+  codeEditClose(block);
+  updateCodeEditBtn(block);
+  setInfo('Code reverted to original');
+}
+
+function codeEditOpen(block){
+  if(!block.id||block.classList.contains('code-block-editing'))return;
+  snapshotBlockDefault(block);
+  var current=extractBlockPlainText(block);
+  block.classList.add('code-block-editing');
+  var toolbar=getCodeBlockToolbar(block);
+  if(toolbar)toolbar.style.display='none';
+  var editor=document.createElement('div');
+  editor.className='code-block-editor';
+  var ta=document.createElement('textarea');
+  ta.className='code-edit-textarea';
+  ta.value=current;
+  ta.spellcheck=false;
+  ta.setAttribute('aria-label','Edit code for '+block.id);
+  var actions=document.createElement('div');
+  actions.className='code-edit-actions';
+  var saveBtn=document.createElement('button');
+  saveBtn.type='button';saveBtn.className='code-edit-save';saveBtn.textContent='Save';
+  saveBtn.onclick=function(e){e.stopPropagation();codeEditSave(block,ta);};
+  var cancelBtn=document.createElement('button');
+  cancelBtn.type='button';cancelBtn.className='code-edit-cancel';cancelBtn.textContent='Cancel';
+  cancelBtn.onclick=function(e){e.stopPropagation();codeEditClose(block);};
+  actions.appendChild(saveBtn);
+  actions.appendChild(cancelBtn);
+  if(codeEditGetOverride(block.id)!==null){
+    var revertBtn=document.createElement('button');
+    revertBtn.type='button';revertBtn.className='code-edit-revert';revertBtn.textContent='Revert';
+    revertBtn.onclick=function(e){e.stopPropagation();codeEditRevert(block);};
+    actions.appendChild(revertBtn);
+  }
+  ta.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){e.preventDefault();codeEditClose(block);}
+    if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();codeEditSave(block,ta);}
+  });
+  editor.appendChild(ta);
+  editor.appendChild(actions);
+  block.appendChild(editor);
+  ta.focus();
+}
+
+function attachCodeEditBtn(block,toolbar){
+  if(!block.id||toolbar.querySelector('.code-edit-btn'))return;
+  var editBtn=document.createElement('button');
+  editBtn.type='button';
+  editBtn.className='code-edit-btn';
+  editBtn.innerHTML=CODE_ICON_EDIT;
+  editBtn.onclick=function(e){e.stopPropagation();codeEditOpen(block);};
+  toolbar.insertBefore(editBtn,toolbar.firstChild);
+  updateCodeEditBtn(block);
+}
+
+function initCodeBlocks(){
+  try{codeTheme=localStorage.getItem(CODE_THEME_KEY)||'dark';}catch(e){}
+  try{codeShowLines=localStorage.getItem(CODE_LINES_KEY)!=='0';}catch(e){}
+  document.querySelectorAll('.code-block').forEach(function(block){
+    prepareCodeBlockLines(block);
+    snapshotBlockDefault(block);
+    applyCodeOverride(block);
+    var toolbar=block.querySelector('.code-block-toolbar');
+    if(!toolbar){
+      toolbar=document.createElement('div');
+      toolbar.className='code-block-toolbar';
+      var lnBtn=document.createElement('button');
+      lnBtn.type='button';lnBtn.className='code-ln-btn';lnBtn.innerHTML=CODE_ICON_LN;
+      lnBtn.onclick=function(e){e.stopPropagation();toggleCodeLines();};
+      var themeBtn=document.createElement('button');
+      themeBtn.type='button';themeBtn.className='code-theme-btn';
+      themeBtn.onclick=function(e){e.stopPropagation();toggleCodeTheme();};
+      toolbar.appendChild(lnBtn);
+      toolbar.appendChild(themeBtn);
+      block.insertBefore(toolbar,block.firstChild);
+    }
+    attachCodeEditBtn(block,toolbar);
+  });
+  applyCodeTheme(codeTheme);
+  applyCodeLines(codeShowLines);
+}
+var S2=[
+  function(){
+    showEl('s2-p1');
+    hlCode('s2-code',7);
+    var c=setupLLCanvas('s2-canvas');
+    drawLinkedList(c,{nodes:[{data:10,addr:'0x7ffe_a100'}],highlight:0,ptrLabels:{head:'0x7ffe_a100',headHl:true}});
+    document.getElementById('s2-trace').textContent='new Node{10, nullptr} → n1 points to heap address 0x7ffe_a100';
+    setInfo('One node on the heap — data=10, next=nullptr');
+  },
+  function(){
+    showEl('s2-p2');
+    hlCode('s2-code2',2);
+    var c=setupLLCanvas('s2-canvas2');
+    drawLinkedList(c,{
+      nodes:[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'}],
+      highlight:0,
+      ptrLabels:{head:'0x7ffe_a100'}
+    });
+    document.getElementById('s2-trace2').textContent='n1->next = n2  →  arrow from 0x7ffe_a100 points to 0x7ffe_a120';
+    setInfo('Manual linking works for 2 nodes — but what about 10? 100?');
+  }
+];
+function resetS2(){
+  ['s2-p1','s2-p2'].forEach(hideEl);
+  clearHl('s2-code');clearHl('s2-code2');
+  s2Step=0;
+}
+var S3=[
+  function(){
+    showEl('s3-p1');
+    setInfo('Questions that motivate the SinglyLinkedList wrapper');
+  },
+  function(){
+    showEl('s3-p2');
+    hlCode('s3-code',10);
+    document.getElementById('s3-head-box').querySelector('.ptr-val').textContent='0x7ffe_a100';
+    document.getElementById('s3-tail-box').querySelector('.ptr-val').textContent='0x7ffe_a100';
+    document.getElementById('s3-head-box').classList.add('highlight');
+    document.getElementById('s3-tail-box').classList.add('highlight');
+    var c=setupLLCanvas('s3-canvas');
+    drawLinkedList(c,{
+      nodes:[{data:10,addr:'0x7ffe_a100'}],
+      highlight:0,
+      ptrLabels:{head:'0x7ffe_a100',tail:'0x7ffe_a100',headHl:true,tailHl:true}
+    });
+    document.getElementById('s3-trace').textContent='One node: head and tail both point to the same address.';
+    setInfo('head = first node, tail = last node — both Node* pointers');
+  },
+  function(){
+    showEl('s3-p3');
+    hlCode('s3-code2',3);
+    document.getElementById('s3-tail-box').querySelector('.ptr-val').textContent='0x7ffe_a140';
+    var c=setupLLCanvas('s3-canvas2');
+    drawLinkedList(c,{
+      nodes:[
+        {data:10,addr:'0x7ffe_a100'},
+        {data:20,addr:'0x7ffe_a120'},
+        {data:30,addr:'0x7ffe_a140'}
+      ],
+      highlight:2,
+      ptrLabels:{head:'0x7ffe_a100',tail:'0x7ffe_a140',tailHl:true}
+    });
+    document.getElementById('s3-trace2').textContent='tail->next = n3; tail = n3; — append without traversing!';
+    setInfo('tail is the key to O(1) insertion at the end');
+  }
+];
+function resetS3(){
+  ['s3-p1','s3-p2','s3-p3'].forEach(hideEl);
+  clearHl('s3-code');clearHl('s3-code2');
+  document.getElementById('s3-head-box').classList.remove('highlight');
+  document.getElementById('s3-tail-box').classList.remove('highlight');
+  s3Step=0;
+}
+var S4_TRACE=[
+  {line:12,msg:'insert(10): empty list → head = tail = new node',nodes:[{data:10,addr:'0x7ffe_a100'}],head:'0x7ffe_a100',tail:'0x7ffe_a100',hl:0,mainLine:12},
+  {line:3,msg:'head == nullptr → head = tail = n (address 0x7ffe_a100)',nodes:[{data:10,addr:'0x7ffe_a100'}],head:'0x7ffe_a100',tail:'0x7ffe_a100',hl:0,mainLine:12},
+  {line:13,msg:'insert(20): tail->next = n; tail = n',nodes:[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'}],head:'0x7ffe_a100',tail:'0x7ffe_a120',hl:1,mainLine:13},
+  {line:6,msg:'tail->next = n  →  link 0x7ffe_a100 → 0x7ffe_a120',nodes:[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'}],head:'0x7ffe_a100',tail:'0x7ffe_a120',hl:0,mainLine:13},
+  {line:7,msg:'tail = n  →  tail now at 0x7ffe_a120',nodes:[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'}],head:'0x7ffe_a100',tail:'0x7ffe_a120',hl:1,mainLine:13},
+  {line:14,msg:'insert(30): append via tail — O(1)!',nodes:[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'}],head:'0x7ffe_a100',tail:'0x7ffe_a140',hl:2,mainLine:14},
+  {line:6,msg:'tail->next = n  →  20 links to 30 at 0x7ffe_a140',nodes:[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'}],head:'0x7ffe_a100',tail:'0x7ffe_a140',hl:1,mainLine:14},
+  {line:7,msg:'tail = n  →  list complete: 10 → 20 → 30 → null',nodes:[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'}],head:'0x7ffe_a100',tail:'0x7ffe_a140',hl:2,mainLine:14}
+];
+
+var S4=[
+  function(){
+    showEl('s4-p1');
+    s4Render(0);
+    setInfo('Tracing insert() — watch code highlight sync with memory');
+  }
+];
+function s4Render(i){
+  var t=S4_TRACE[i]||S4_TRACE[S4_TRACE.length-1];
+  hlCode('s4-code',t.line);
+  document.getElementById('s4-trace').textContent=t.msg;
+  document.getElementById('s4-trace').className='trace-bar'+(i===0?'':' ok');
+  document.getElementById('s4-head').querySelector('.ptr-val').textContent=t.head;
+  document.getElementById('s4-tail').querySelector('.ptr-val').textContent=t.tail;
+  var c=setupLLCanvas('s4-canvas');
+  drawLinkedList(c,{nodes:t.nodes,highlight:t.hl,ptrLabels:{head:t.head,tail:t.tail,tailHl:t.hl===t.nodes.length-1,headHl:t.hl===0}});
+  setInfo(t.msg);
+}
+function resetS4(){
+  showEl('s4-p1');
+  clearHl('s4-code');
+  s4Step=0;
+}
+function s4Next(){
+  if(s4Step<S4_TRACE.length){s4Render(s4Step);s4Step++;return true;}
+  return false;
+}
+function s4Prev(){
+  if(s4Step>1){s4Step--;s4Render(s4Step-1);return true;}
+  return false;
+}
+var S5_TRACE=[
+  {line:1,visit:0,msg:'curr = head  →  start at 0x7ffe_a100 (data=10)',curr:'0x7ffe_a100',result:'—'},
+  {line:3,visit:0,msg:'curr->data (10) == key (20)?  No → advance',curr:'0x7ffe_a100',result:'—'},
+  {line:5,visit:0,msg:'curr = curr->next  →  move to 0x7ffe_a120',curr:'0x7ffe_a120',result:'—'},
+  {line:3,visit:1,msg:'curr->data (20) == key (20)?  Yes!',curr:'0x7ffe_a120',result:'—'},
+  {line:4,visit:1,msg:'return curr  →  found at 0x7ffe_a120',curr:'0x7ffe_a120',result:'0x7ffe_a120'}
+];
+var S5_NODES=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'}];
+
+var S5=[function(){showEl('s5-p1');s5Render(0);setInfo('Linear search — must visit nodes sequentially');}];
+function s5Render(i){
+  var t=S5_TRACE[i]||S5_TRACE[S5_TRACE.length-1];
+  hlCode('s5-code',t.line);
+  document.getElementById('s5-trace').textContent=t.msg;
+  document.getElementById('s5-trace').className='trace-bar'+(i===S5_TRACE.length-1?' ok':'');
+  document.getElementById('s5-curr').querySelector('.ptr-val').textContent=t.curr;
+  document.getElementById('s5-result').querySelector('.ptr-val').textContent=t.result;
+  var c=setupLLCanvas('s5-canvas');
+  drawLinkedList(c,{nodes:S5_NODES,visitIdx:t.visit,highlight:i===S5_TRACE.length-1?1:-1,ptrLabels:{curr:t.curr,currIdx:t.visit,head:'0x7ffe_a100',tail:'0x7ffe_a140'}});
+  setInfo(t.msg);
+}
+function resetS5(){showEl('s5-p1');clearHl('s5-code');s5Step=0;}
+function s5Next(){if(s5Step<S5_TRACE.length){s5Render(s5Step);s5Step++;return true;}return false;}
+function s5Prev(){if(s5Step>1){s5Step--;s5Render(s5Step-1);return true;}return false;}
+var S6_NODES=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:20,addr:'0x7ffe_a140'},{data:30,addr:'0x7ffe_a160'}];
+var S6_TRACE=[
+  {line:1,visit:0,cnt:0,msg:'cnt = 0; curr = head',curr:'0x7ffe_a100'},
+  {line:4,visit:0,cnt:0,msg:'data=10 ≠ 20 → cnt stays 0',curr:'0x7ffe_a100'},
+  {line:5,visit:0,cnt:0,msg:'curr = curr->next → 0x7ffe_a120',curr:'0x7ffe_a120'},
+  {line:4,visit:1,cnt:1,msg:'data=20 == 20 → cnt++  (cnt=1)',curr:'0x7ffe_a120'},
+  {line:5,visit:1,cnt:1,msg:'curr = curr->next → 0x7ffe_a140',curr:'0x7ffe_a140'},
+  {line:4,visit:2,cnt:2,msg:'data=20 == 20 → cnt++  (cnt=2)',curr:'0x7ffe_a140'},
+  {line:5,visit:2,cnt:2,msg:'curr = curr->next → 0x7ffe_a160',curr:'0x7ffe_a160'},
+  {line:4,visit:3,cnt:2,msg:'data=30 ≠ 20 → cnt stays 2',curr:'0x7ffe_a160'},
+  {line:7,visit:3,cnt:2,msg:'return cnt → 2 occurrences of key 20',curr:'null'}
+];
+
+var S6=[function(){showEl('s6-p1');s6Render(0);setInfo('count() visits ALL nodes — O(n) always');}];
+function s6Render(i){
+  var t=S6_TRACE[i]||S6_TRACE[S6_TRACE.length-1];
+  hlCode('s6-code',t.line);
+  document.getElementById('s6-trace').textContent=t.msg;
+  document.getElementById('s6-trace').className='trace-bar'+(i===S6_TRACE.length-1?' ok':'');
+  document.getElementById('s6-cnt').querySelector('.ptr-val').textContent=String(t.cnt);
+  document.getElementById('s6-curr').querySelector('.ptr-val').textContent=t.curr;
+  var c=setupLLCanvas('s6-canvas');
+  var hlNodes=[];
+  S6_NODES.forEach(function(n,idx){if(n.data===20&&idx<=t.visit)hlNodes.push(idx);});
+  drawLinkedList(c,{
+    nodes:S6_NODES,visitIdx:t.visit,
+    highlight:hlNodes.length?hlNodes[hlNodes.length-1]:-1,
+    ptrLabels:{curr:t.curr,currIdx:t.visit,head:'0x7ffe_a100',tail:'0x7ffe_a160'}
+  });
+  setInfo(t.msg);
+}
+function resetS6(){showEl('s6-p1');clearHl('s6-code');s6Step=0;}
+function s6Next(){if(s6Step<S6_TRACE.length){s6Render(s6Step);s6Step++;return true;}return false;}
+function s6Prev(){if(s6Step>1){s6Step--;s6Render(s6Step-1);return true;}return false;}
+var S7_BEFORE=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'}];
+var S7_AFTER=[{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'}];
+var S7_TRACE=[
+  {line:2,msg:'head->data (10) == key (10)?  Yes — special head case!',head:'0x7ffe_a100',tail:'0x7ffe_a140',del:'—',nodes:S7_BEFORE,removed:[],hl:0},
+  {line:3,msg:'tmp = head  →  save 0x7ffe_a100 before rewiring',head:'0x7ffe_a100',tail:'0x7ffe_a140',del:'0x7ffe_a100',nodes:S7_BEFORE,removed:[],hl:0},
+  {line:4,msg:'head = head->next  →  head now points to 0x7ffe_a120',head:'0x7ffe_a120',tail:'0x7ffe_a140',del:'0x7ffe_a100',nodes:S7_BEFORE,removed:[0],hl:1},
+  {line:6,msg:'delete tmp  →  free 0x7ffe_a100 from memory',head:'0x7ffe_a120',tail:'0x7ffe_a140',del:'freed!',nodes:S7_AFTER,removed:[],hl:0},
+  {line:7,msg:'return 1  →  one node deleted. List: 20 → 30',head:'0x7ffe_a120',tail:'0x7ffe_a140',del:'done',nodes:S7_AFTER,removed:[],hl:-1}
+];
+
+var S7=[function(){showEl('s7-p1');s7Render(0);setInfo('Head deletion is a special case — rewire before delete');}];
+function s7Render(i){
+  var t=S7_TRACE[i]||S7_TRACE[S7_TRACE.length-1];
+  hlCode('s7-code',t.line,t.line===6?true:false);
+  document.getElementById('s7-trace').textContent=t.msg;
+  document.getElementById('s7-trace').className='trace-bar'+(i>=3?' ok':(i===2?' warn':''));
+  document.getElementById('s7-head').querySelector('.ptr-val').textContent=t.head;
+  document.getElementById('s7-tail').querySelector('.ptr-val').textContent=t.tail;
+  document.getElementById('s7-del').querySelector('.ptr-val').textContent=t.del;
+  var c=setupLLCanvas('s7-canvas');
+  drawLinkedList(c,{nodes:t.nodes,highlight:t.hl,removed:t.removed,ptrLabels:{head:t.head,tail:t.tail,headHl:true}});
+  setInfo(t.msg);
+}
+function resetS7(){showEl('s7-p1');clearHl('s7-code');s7Step=0;}
+function s7Next(){if(s7Step<S7_TRACE.length){s7Render(s7Step);s7Step++;return true;}return false;}
+function s7Prev(){if(s7Step>1){s7Step--;s7Render(s7Step-1);return true;}return false;}
+var S8_START=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:20,addr:'0x7ffe_a140'},{data:30,addr:'0x7ffe_a160'}];
+var S8_DEMOS={
+  1:{after:[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a140'},{data:30,addr:'0x7ffe_a160'}],deleted:1,ret:1,msg:'remove(20, 1): delete first 20 only → return 1',line:4},
+  2:{after:[{data:10,addr:'0x7ffe_a100'},{data:30,addr:'0x7ffe_a160'}],deleted:2,ret:2,msg:'remove(20, 2): delete both 20s → return 2',line:6},
+  '-1':{after:[{data:10,addr:'0x7ffe_a100'},{data:30,addr:'0x7ffe_a160'}],deleted:2,ret:2,msg:'remove(20, -1): count==-1 → loop until no more 20s → return 2',line:4}
+};
+
+var S8=[function(){showEl('s8-p1');s8Demo(1);setInfo('Click buttons or press → to see different count modes');}];
+function s8Demo(mode){
+  var key=mode===-1?'-1':String(mode);
+  var d=S8_DEMOS[key];
+  ['s8-b1','s8-b2','s8-b3'].forEach(function(id){document.getElementById(id).classList.remove('active');});
+  if(mode===1)document.getElementById('s8-b1').classList.add('active');
+  if(mode===2)document.getElementById('s8-b2').classList.add('active');
+  if(mode===-1)document.getElementById('s8-b3').classList.add('active');
+  hlCode('s8-code',d.line);
+  document.getElementById('s8-trace').textContent=d.msg;
+  document.getElementById('s8-trace').className='trace-bar ok';
+  document.getElementById('s8-deleted').querySelector('.ptr-val').textContent=String(d.deleted);
+  document.getElementById('s8-return').querySelector('.ptr-val').textContent=String(d.ret);
+  var c=setupLLCanvas('s8-canvas');
+  drawLinkedList(c,{nodes:d.after,ptrLabels:{head:d.after[0].addr,tail:d.after[d.after.length-1].addr}});
+  setInfo(d.msg);
+  s8DemoMode=mode;
+}
+var s8DemoMode=1;
+function resetS8(){showEl('s8-p1');clearHl('s8-code');s8DemoMode=1;s8Step=0;}
+var S8_MODES=[1,2,-1];
+function s8Next(){var idx=S8_MODES.indexOf(s8DemoMode);if(idx<S8_MODES.length-1){s8Demo(S8_MODES[idx+1]);return true;}return false;}
+function s8Prev(){var idx=S8_MODES.indexOf(s8DemoMode);if(idx>0){s8Demo(S8_MODES[idx-1]);return true;}return false;}
+var S9=[
+  function(){
+    showEl('s9-p1');
+    s9Update();
+    setInfo('Drag the slider — insert stays O(1), others grow with n');
+  },
+  function(){
+    showEl('s9-p2');
+    s9Update();
+    setInfo('Comparison table — steps scale with list size');
+  },
+  function(){
+    showEl('s9-p3');
+    setInfo('Summary — non-linear structure, O(1) insert, O(n) search');
+  }
+];
+function s9Update(){
+  var n=parseInt(document.getElementById('s9-n').value,10);
+  document.getElementById('s9-nval').textContent=n;
+  var nl=document.getElementById('s9-nlabel');
+  if(nl)nl.textContent=n;
+
+  document.getElementById('s9-bar-ins').style.width='12%';
+  document.getElementById('s9-bar-find').style.width=Math.min(100,10+n*4)+'%';
+  document.getElementById('s9-bar-cnt').style.width=Math.min(100,15+n*4)+'%';
+  document.getElementById('s9-bar-rm').style.width=Math.min(100,12+n*4)+'%';
+
+  document.getElementById('s9-steps-ins').textContent='1';
+  document.getElementById('s9-steps-find').textContent=Math.ceil(n/2);
+  document.getElementById('s9-steps-cnt').textContent=n;
+  document.getElementById('s9-steps-rm').textContent=Math.ceil(n/2);
+
+  var nodes=[];
+  for(var i=0;i<n;i++)nodes.push({data:(i+1)*10,addr:LL_ADDRS[i]});
+  var c=setupLLCanvas('s9-canvas');
+  if(c){
+    drawLinkedList(c,{
+      nodes:nodes,
+      visitIdx:n-1,
+      ptrLabels:{head:LL_ADDRS[0],tail:LL_ADDRS[n-1]}
+    });
+  }
+  var tr=document.getElementById('s9-trace');
+  if(tr)tr.textContent='n='+n+': find visits ~'+Math.ceil(n/2)+' nodes avg, count visits all '+n;
+}
+function resetS9(){
+  ['s9-p1','s9-p2','s9-p3'].forEach(hideEl);
+  document.getElementById('s9-n').value=5;
+  s9Step=0;
+}
+// ══════════════════════════════════
+// SLIDE 10 — CHUNKED DYNAMIC ARRAY
+// ══════════════════════════════════
+var CHUNK_SIZE = 100;
+var s10Count = 0;
+
+function s10Chunks(total){
+  if(total===0)return [{idx:0,fill:0,addr:LL_ADDRS[0]}];
+  var n=Math.ceil(total/CHUNK_SIZE);
+  var chunks=[];
+  for(var i=0;i<n;i++){
+    var start=i*CHUNK_SIZE;
+    chunks.push({idx:i,fill:Math.min(CHUNK_SIZE,total-start),addr:LL_ADDRS[i]||('0x7ffe_b'+(100+i*0x20).toString(16))});
+  }
+  return chunks;
+}
+
+function drawChunkedArray(canvas, total, highlightChunk){
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#f8fafc';
+  ctx.fillRect(0,0,W,H);
+
+  var chunks=s10Chunks(total);
+  var gridCols=10, gridRows=10, cellSize=7;
+  var chunkPadW=gridCols*cellSize+16;
+  var chunkPadH=gridRows*cellSize+44;
+  var gap=56;
+  var totalW=chunks.length*chunkPadW+(chunks.length-1)*gap;
+  var startX=Math.max(20,(W-totalW)/2);
+  var y=(H-chunkPadH)/2;
+
+  chunks.forEach(function(ch,i){
+    var x=startX+i*(chunkPadW+gap);
+    var isHl=i===highlightChunk;
+    var isFull=ch.fill===CHUNK_SIZE;
+    var isNew=total>0&&ch.fill===1&&i===chunks.length-1&&chunks.length>1;
+
+    ctx.fillStyle=isHl?'#ecfdf5':(isNew?'#eff6ff':'#fff');
+    ctx.strokeStyle=isHl?'#1D9E75':(isFull?'#534AB7':'#94a3b8');
+    ctx.lineWidth=isHl?2.5:1.5;
+    roundRect(ctx,x,y,chunkPadW,chunkPadH,10);
+    ctx.fill();ctx.stroke();
+
+    ctx.fillStyle='#534AB7';
+    ctx.font='bold 10px -apple-system,sans-serif';
+    ctx.textAlign='left';
+    ctx.fillText('ArrayChunk '+ch.idx,x+8,y+14);
+
+    ctx.fillStyle='#9ca3af';
+    ctx.font='9px Courier New,monospace';
+    ctx.fillText(ch.addr,x+8,y+26);
+
+    ctx.fillStyle='#6b7280';
+    ctx.font='bold 9px -apple-system,sans-serif';
+    ctx.textAlign='right';
+    ctx.fillText(ch.fill+' / '+CHUNK_SIZE,x+chunkPadW-8,y+14);
+
+    var gx=x+8, gy=y+32;
+    for(var r=0;r<gridRows;r++){
+      for(var c=0;c<gridCols;c++){
+        var slot=r*gridCols+c;
+        var filled=slot<ch.fill;
+        var isLast=total>0&&i*CHUNK_SIZE+slot===total-1;
+        ctx.fillStyle=filled?(isLast?'#1D9E75':(isFull?'#534AB7':'#7c6fe0')):'#e5e7eb';
+        if(isLast){ctx.strokeStyle='#1D9E75';ctx.lineWidth=1.5;roundRect(ctx,gx+c*(cellSize+1),gy+r*(cellSize+1),cellSize,cellSize,2);ctx.fill();ctx.stroke();}
+        else{roundRect(ctx,gx+c*(cellSize+1),gy+r*(cellSize+1),cellSize,cellSize,2);ctx.fill();}
+      }
+    }
+
+    if(i<chunks.length-1){
+      var ax=x+chunkPadW+6, ay=y+chunkPadH/2;
+      var bx=x+chunkPadW+gap-6;
+      ctx.strokeStyle='#94a3b8';
+      ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,ay);ctx.stroke();
+      drawArrowHead(ctx,bx,ay,'#94a3b8');
+      ctx.fillStyle='#6b7280';
+      ctx.font='8px Courier New,monospace';
+      ctx.textAlign='center';
+      ctx.fillText('next',(ax+bx)/2,ay-6);
+    }else{
+      ctx.fillStyle='#9ca3af';
+      ctx.font='9px Courier New,monospace';
+      ctx.textAlign='center';
+      ctx.fillText('next = null',x+chunkPadW/2,y+chunkPadH+12);
+    }
+  });
+
+  if(total===0){
+    ctx.fillStyle='#6b7280';
+    ctx.font='11px -apple-system,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('first chunk allocated — 0 / 100 filled',W/2,H-16);
+  }
+}
+
+function s10UpdateCount(n){
+  s10Count=Math.max(0,Math.min(320,n));
+  var slider=document.getElementById('s10-count');
+  if(slider)slider.value=s10Count;
+  document.getElementById('s10-count-val').textContent=s10Count;
+  s10Render();
+}
+
+function s10Render(){
+  var chunks=s10Chunks(s10Count);
+  var headAddr=s10Count===0?'nullptr':chunks[0].addr;
+  var tailAddr=s10Count===0?'nullptr':chunks[chunks.length-1].addr;
+
+  document.getElementById('s10-head-val').textContent=headAddr;
+  document.getElementById('s10-tail-val').textContent=tailAddr;
+  document.getElementById('s10-total-val').textContent=String(s10Count);
+  document.getElementById('s10-chunk-count').textContent=String(s10Count===0?1:chunks.length);
+
+  var hlChunk=-1;
+  var trace='';
+  if(s10Count===0){
+    trace='Empty DynamicArray — first ArrayChunk ready (capacity 100).';
+    hlCode('s10-code',5);
+  }else if(s10Count<CHUNK_SIZE){
+    trace='Inserting into chunk 0: '+s10Count+' / 100 slots used. No new chunk yet.';
+    hlCode('s10-code',2);
+    hlChunk=0;
+  }else if(s10Count===CHUNK_SIZE){
+    trace='Chunk 0 is FULL (100/100). Next insert allocates a new ArrayChunk!';
+    hlCode('s10-code',2);
+    hlChunk=0;
+  }else if(s10Count===CHUNK_SIZE+1){
+    trace='101st element → new chunk created! tail->next = new chunk; tail advances.';
+    hlCode('s10-code',3);
+    hlChunk=1;
+  }else if(s10Count%CHUNK_SIZE===0){
+    trace='Chunk '+(chunks.length-1)+' just filled — '+chunks.length+' chunks linked.';
+    hlCode('s10-code',3);
+    hlChunk=chunks.length-1;
+  }else{
+    trace=chunks.length+' chunk'+(chunks.length>1?'s':'')+': tail chunk has '+chunks[chunks.length-1].fill+' / 100. total = '+s10Count;
+    hlCode('s10-code',7);
+    hlChunk=chunks.length-1;
+  }
+
+  document.getElementById('s10-trace').textContent=trace;
+  document.getElementById('s10-trace').className='trace-bar'+(s10Count===CHUNK_SIZE+1||s10Count%CHUNK_SIZE===0&&s10Count>0?' ok':'');
+
+  var c=setupLLCanvas('s10-canvas');
+  if(c){c.height=200;drawChunkedArray(c,s10Count,hlChunk);}
+  setInfo(trace);
+}
+
+var S10=[
+  function(){
+    showEl('s10-p1');
+    setInfo('Chunked growth — fixed 100-slot blocks linked like a list');
+  },
+  function(){
+    showEl('s10-p2');
+    hlCode('s10-code',1);
+    setInfo('ArrayChunk = array node; DynamicArray = head + tail wrapper');
+  },
+  function(){
+    showEl('s10-p3');
+    s10UpdateCount(0);
+    setInfo('Drag slider or click presets — watch chunks appear at 101, 201…');
+  }
+];
+
+function resetS10(){
+  ['s10-p1','s10-p2','s10-p3'].forEach(hideEl);
+  clearHl('s10-code');
+  s10Count=0;
+  s10Step=0;
+}
+var S11=[
+  function(){showEl('s11-p1');setInfo('Green = when chunked arrays shine; red = when they struggle');},
+  function(){showEl('s11-p2');setInfo('Ask: is random access or append the bottleneck?');},
+  function(){showEl('s11-p3');setInfo('Same linked-list concepts — scaled-up nodes');}
+];
+function resetS11(){['s11-p1','s11-p2','s11-p3'].forEach(hideEl);s11Step=0;}
+var s12Mode='chunk';
+var s12N=0;
+var CMP_HINTS=[
+  'Memory: chunked = scattered blocks; vector = one contiguous slab',
+  'Both achieve O(1) append — chunked via tail, vector amortized',
+  'Indexing: vector wins — arr[i] is direct; chunked must find the right chunk',
+  'Growth: chunked links new block; vector reallocates and copies everything',
+  'At n=200 vector may copy all 200 elements to a new 400-capacity block!',
+  'SIMD/GPU code loves vector\'s contiguous layout',
+  'Use std::vector unless you have a specific reason to roll your own'
+];
+
+var S12=[
+  function(){showEl('s12-p1');s12Highlight(0);setInfo('Click table rows — compare properties side by side');},
+  function(){showEl('s12-p2');s12Update();setInfo('Toggle Chunked vs vector — drag slider to see growth behavior');},
+  function(){showEl('s12-p3');setInfo('vector = default choice; chunked = specialized append pattern');}
+];
+function resetS12(){
+  ['s12-p1','s12-p2','s12-p3'].forEach(hideEl);
+  s12Mode='chunk';s12N=0;s12Step=0;
+  document.getElementById('s12-n').value=0;
+  document.querySelectorAll('.cmp-row').forEach(function(r){r.classList.remove('sel');});
+}
+
+function s12Highlight(row){
+  document.querySelectorAll('.cmp-row').forEach(function(r){r.classList.remove('sel');});
+  var el=document.querySelector('.cmp-row[data-row="'+row+'"]');
+  if(el)el.classList.add('sel');
+  setInfo(CMP_HINTS[row]||'');
+}
+
+function s12SetMode(m){
+  s12Mode=m;
+  document.getElementById('s12-tab-chunk').classList.toggle('active',m==='chunk');
+  document.getElementById('s12-tab-vec').classList.toggle('active',m==='vec');
+  s12Update();
+}
+
+function s12VecCapacity(n){
+  var cap=8;
+  while(cap<n)cap*=2;
+  return cap;
+}
+
+function s12DidRealloc(n){
+  if(n===0)return false;
+  var cap=8;
+  while(cap<n){if(n===cap+1||(n>0&&n===cap))return true;cap*=2;}
+  return n===9||n===17||n===33||n===65||n===129||n===257;
+}
+
+function drawVectorGrowth(canvas,n){
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#f8fafc';ctx.fillRect(0,0,W,H);
+
+  var cap=s12VecCapacity(n||1);
+  var barW=Math.min(W-80,Math.max(60,cap*2.2));
+  var usedW=n>0?Math.max(20,(n/cap)*barW):0;
+  var x=(W-barW)/2,y=H/2-30;
+
+  ctx.fillStyle='#e5e7eb';
+  roundRect(ctx,x,y,barW,50,8);ctx.fill();
+  ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;
+  roundRect(ctx,x,y,barW,50,8);ctx.stroke();
+
+  if(n>0){
+    ctx.fillStyle='#534AB7';
+    roundRect(ctx,x,y,usedW,50,8);ctx.fill();
+  }
+
+  ctx.fillStyle='#1a1a2e';
+  ctx.font='bold 11px -apple-system,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('std::vector  —  size: '+n+' / capacity: '+cap,x+barW/2,y-12);
+
+  var realloc=s12DidRealloc(n)||(n>0&&[8,16,32,64,128].indexOf(n)>=0&&n<cap);
+  if(realloc&&n>0){
+    ctx.fillStyle='rgba(239,68,68,.15)';
+    roundRect(ctx,x-6,y-6,barW+12,62,10);ctx.fill();
+    ctx.fillStyle='#b91c1c';
+    ctx.font='bold 12px -apple-system,sans-serif';
+    ctx.fillText('⚡ REALLOC — copy '+n+' elements to new block!',W/2,y+42);
+  }else if(n>0){
+    ctx.fillStyle='#6b7280';
+    ctx.font='11px -apple-system,sans-serif';
+    ctx.fillText('contiguous memory — arr[i] is O(1)',W/2,y+42);
+  }else{
+    ctx.fillStyle='#9ca3af';
+    ctx.font='11px -apple-system,sans-serif';
+    ctx.fillText('empty vector — capacity starts small, grows by ~2×',W/2,y+42);
+  }
+}
+
+function s12Update(){
+  s12N=parseInt(document.getElementById('s12-n').value,10);
+  document.getElementById('s12-nval').textContent=s12N;
+  var c=setupLLCanvas('s12-canvas');
+  if(!c)return;
+  c.height=180;
+  var trace=document.getElementById('s12-trace');
+  if(s12Mode==='chunk'){
+    drawChunkedArray(c,s12N,s12N>=101?Math.floor((s12N-1)/100):0);
+    if(s12N===0)trace.textContent='Chunked: first ArrayChunk allocated — no data yet.';
+    else if(s12N<100)trace.textContent='Chunked: filling chunk 0 ('+s12N+'/100) — no copy of old data.';
+    else if(s12N===100)trace.textContent='Chunked: chunk 0 full — next insert links chunk 1.';
+    else if(s12N===101)trace.textContent='Chunked: new chunk linked! Old 100 elements untouched.';
+    else trace.textContent='Chunked: '+Math.ceil(s12N/100)+' chunks — append never copies the whole array.';
+    trace.className='trace-bar ok';
+  }else{
+    drawVectorGrowth(c,s12N);
+    if(s12N===0)trace.textContent='vector: empty — heap block with small initial capacity.';
+    else if(s12DidRealloc(s12N)||[8,16,32,64,128].indexOf(s12N)>=0)
+      trace.textContent='vector: REALLOC at n='+s12N+' — allocate bigger block, copy ALL elements!';
+    else trace.textContent='vector: n='+s12N+', capacity='+s12VecCapacity(s12N)+' — fast arr[i] access.';
+  trace.className='trace-bar'+(s12DidRealloc(s12N)?' warn':'');
+  }
+  setInfo(trace.textContent);
+}
+function toggleUc(id){
+  document.querySelectorAll('.uc-card').forEach(function(card){
+    var open=card.id===id&&!card.classList.contains('open');
+    card.classList.toggle('open',open);
+    card.querySelector('.uc-body').style.maxHeight=open?'200px':'0';
+  });
+  var titles={'uc-rope':'Rope buffers — chunked text for huge documents','uc-db':'DB pages — fixed blocks on disk, grow by adding pages','uc-log':'Append-only logs — new segment when current fills','uc-alloc':'Slab allocators — fixed-size memory chunks','uc-game':'Telemetry streams — append for hours, read sequentially','uc-vec':'vector wins when you need arr[i] every frame'};
+  if(document.getElementById(id).classList.contains('open'))setInfo(titles[id]||'');
+}
+
+var S13=[
+  function(){showEl('s13-p1');setInfo('Click any card — real systems using chunk / link patterns');}
+];
+function resetS13(){
+  document.querySelectorAll('.uc-card').forEach(function(card){
+    card.classList.remove('open');
+    card.querySelector('.uc-body').style.maxHeight='0';
+  });
+  s13Step=0;
+}
+var S14=[function(){showEl('s14-p1');setInfo('Thank you — CS2308 Data Structures');}];
+function resetS14(){s14Step=0;}
+var DLL_SAMPLE=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'}];
+
+var S15=[
+  function(){
+    showEl('s15-p1');
+    hlCode('s15-code',2);
+    var c=setupLLCanvas('s15-canvas');
+    if(c){c.height=150;drawDoublyLinkedList(c,{nodes:[{data:20,addr:'0x7ffe_a120'}],highlight:0,ptrLabels:{head:'0x7ffe_a120',tail:'0x7ffe_a120',headHl:true,tailHl:true}});}
+    document.getElementById('s15-trace').textContent='DLLNode adds prev* — can walk in both directions.';
+    setInfo('prev + next — two pointers per node');
+  },
+  function(){
+    showEl('s15-p2');
+    hlCode('s15-code',5);
+    var c=setupLLCanvas('s15-canvas2');
+    if(c){c.height=190;drawDoublyLinkedList(c,{nodes:DLL_SAMPLE,ptrLabels:{head:'0x7ffe_a100',tail:'0x7ffe_a140',headHl:true,tailHl:true}});}
+    document.getElementById('s15-trace2').textContent='10 ↔ 20 ↔ 30 — purple = next, green = prev';
+    setInfo('head and tail still matter — same wrapper idea as singly linked list');
+  }
+];
+function resetS15(){
+  ['s15-p1','s15-p2'].forEach(hideEl);
+  clearHl('s15-code');
+  s15Step=0;
+}
+var s16Idx=0;
+var s16Nodes=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'}];
+
+function s16Draw(){
+  var c=setupLLCanvas('s16-canvas');
+  if(!c)return;
+  c.height=190;
+  drawDoublyLinkedList(c,{
+    nodes:s16Nodes,visitIdx:s16Idx,
+    ptrLabels:{head:'0x7ffe_a100',tail:'0x7ffe_a140',curr:s16Nodes[s16Idx].addr}
+  });
+  document.getElementById('s16-curr').textContent=s16Nodes[s16Idx].addr;
+  document.getElementById('s16-data').textContent=String(s16Nodes[s16Idx].data);
+  var dir=s16Idx===0?'at head (10)':(s16Idx===s16Nodes.length-1?'at tail (30)':'at '+s16Nodes[s16Idx].data);
+  document.getElementById('s16-trace').textContent='curr '+dir+' — walk forward or backward freely';
+  setInfo('curr->prev and curr->next both valid (except at ends)');
+}
+
+function s16Move(d){
+  s16Idx=Math.max(0,Math.min(s16Nodes.length-1,s16Idx+d));
+  s16Draw();
+}
+
+function s16Reset(){
+  s16Idx=0;
+  s16Draw();
+}
+
+var S16=[
+  function(){
+    showEl('s16-p1');
+    s16Idx=0;
+    s16Draw();
+    setInfo('Click ← prev / next → — bidirectional traversal');
+  },
+  function(){
+    showEl('s16-p2');
+    var c=setupLLCanvas('s16-canvas2');
+    if(c){
+      c.height=190;
+      drawDoublyLinkedList(c,{
+        nodes:[{data:10,addr:'0x7ffe_a100'},{data:30,addr:'0x7ffe_a140'}],
+        highlight:1,removed:[1],
+        ptrLabels:{head:'0x7ffe_a100',tail:'0x7ffe_a140'}
+      });
+    }
+    document.getElementById('s16-trace2').textContent='Node 20 removed: 10->next=30, 30->prev=10. Given a pointer to 20, this is O(1).';
+    setInfo('Doubly linked: O(1) delete when you already have the node pointer');
+  }
+];
+function resetS16(){
+  ['s16-p1','s16-p2'].forEach(hideEl);
+  s16Idx=0;
+  s16Step=0;
+}
+var s17Nodes=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'}];
+var s17Hl=-1;
+var s17Visit=-1;
+
+function s17Draw(){
+  var c=setupLLCanvas('s17-canvas');
+  if(!c)return;
+  c.height=190;
+  drawDoublyLinkedList(c,{
+    nodes:s17Nodes,highlight:s17Hl,visitIdx:s17Visit,
+    ptrLabels:{
+      head:s17Nodes.length?s17Nodes[0].addr:'nullptr',
+      tail:s17Nodes.length?s17Nodes[s17Nodes.length-1].addr:'nullptr',
+      headHl:true,tailHl:true
+    }
+  });
+  document.getElementById('s17-head').textContent=s17Nodes.length?s17Nodes[0].addr:'nullptr';
+  document.getElementById('s17-tail').textContent=s17Nodes.length?s17Nodes[s17Nodes.length-1].addr:'nullptr';
+}
+
+function s17Reset(){
+  s17Nodes=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'}];
+  s17Hl=-1;s17Visit=-1;
+  document.getElementById('s17-result').querySelector('.ptr-val').textContent='—';
+  document.getElementById('s17-trace').textContent='Reset: 10 ↔ 20 ↔ 30';
+  document.getElementById('s17-trace').className='trace-bar';
+  document.querySelectorAll('.dll-op-btn').forEach(function(b){b.classList.remove('active');});
+  s17Draw();
+  setInfo('List restored to 10 ↔ 20 ↔ 30');
+}
+
+function s17Op(op){
+  document.querySelectorAll('.dll-op-btn').forEach(function(b){b.classList.remove('active');});
+  var trace=document.getElementById('s17-trace');
+  var result=document.getElementById('s17-result').querySelector('.ptr-val');
+
+  if(op==='insert'){
+    s17Nodes.push({data:40,addr:'0x7ffe_a160'});
+    s17Hl=s17Nodes.length-1;s17Visit=-1;
+    trace.textContent='insert(40): append at tail — tail->next = new; new->prev = tail';
+    trace.className='trace-bar ok';
+    result.textContent='void';
+    setInfo('O(1) append with tail pointer — same as singly linked');
+  }else if(op==='find'){
+    s17Hl=1;s17Visit=1;
+    trace.textContent='find(20): walk from head → found at 0x7ffe_a120';
+    trace.className='trace-bar';
+    result.textContent='0x7ffe_a120';
+    setInfo('find still O(n) — must traverse until match');
+  }else if(op==='count'){
+    s17Visit=0;s17Hl=-1;
+    var cnt=s17Nodes.filter(function(n){return n.data===20;}).length;
+    trace.textContent='count(20): scan all nodes → '+cnt+' occurrence(s)';
+    trace.className='trace-bar';
+    result.textContent=String(cnt);
+    setInfo('count visits every node — O(n)');
+  }else if(op==='remove'){
+    var idx=s17Nodes.findIndex(function(n){return n.data===20;});
+    if(idx>=0){
+      s17Hl=idx;s17Visit=-1;
+      s17Nodes.splice(idx,1);
+      trace.textContent='remove(20): prev->next = next; next->prev = prev — node unlinked';
+      trace.className='trace-bar ok';
+      result.textContent='1';
+      s17Hl=-1;
+    }else{
+      trace.textContent='remove(20): key not found';
+      result.textContent='0';
+    }
+    setInfo('With prev pointer, middle delete needs no scan from head');
+  }
+  s17Draw();
+}
+
+var S17=[
+  function(){
+    showEl('s17-p1');
+    s17Reset();
+    setInfo('Click operations — same API as singly linked, different internals');
+  },
+  function(){
+    showEl('s17-p2');
+    setInfo('Real systems use DLL for two-way navigation');
+  }
+];
+function resetS17(){
+  ['s17-p1','s17-p2'].forEach(hideEl);
+  s17Reset();
+  s17Step=0;
+}
+var CLL_SAMPLE=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'},{data:40,addr:'0x7ffe_a160'}];
+
+var S18=[
+  function(){
+    showEl('s18-p1');
+    setInfo('Circular list: tail connects back to head — no end');
+  },
+  function(){
+    showEl('s18-p2');
+    hlCode('s18-code',5);
+    var c=setupLLCanvas('s18-canvas');
+    if(c){c.height=280;drawCircularLinkedList(c,{
+      nodes:CLL_SAMPLE,returnHl:true,
+      ptrLabels:{head:'0x7ffe_a100',tail:'0x7ffe_a160',headHl:true,tailHl:true}
+    });}
+    document.getElementById('s18-trace').textContent='Orange dashed arrow: tail->next = head — list never ends';
+    setInfo('Same Node struct — one extra link closes the ring');
+  }
+];
+function resetS18(){
+  ['s18-p1','s18-p2'].forEach(hideEl);
+  clearHl('s18-code');
+  s18Step=0;
+}
+var s19Idx=0;
+var s19Laps=0;
+var s19Steps=0;
+var s19Nodes=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'},{data:40,addr:'0x7ffe_a160'}];
+
+function s19Draw(){
+  var c=setupLLCanvas('s19-canvas');
+  if(!c)return;
+  c.height=280;
+  var wrapped=s19Steps>0&&s19Idx===0;
+  drawCircularLinkedList(c,{
+    nodes:s19Nodes,visitIdx:s19Idx,
+    returnHl:wrapped,
+    ptrLabels:{head:'0x7ffe_a100',tail:'0x7ffe_a160',curr:s19Nodes[s19Idx].addr}
+  });
+  document.getElementById('s19-curr').textContent=s19Nodes[s19Idx].addr;
+  document.getElementById('s19-data').textContent=String(s19Nodes[s19Idx].data);
+  document.getElementById('s19-laps').textContent=String(s19Laps);
+  var trace=document.getElementById('s19-trace');
+  if(s19Steps===0){
+    trace.textContent='curr at head (10) — click curr = curr→next';
+    trace.className='trace-bar';
+  }else if(wrapped){
+    trace.textContent='Wrapped around! tail→next brought curr back to head — lap '+(s19Laps+1);
+    trace.className='trace-bar ok';
+    document.getElementById('s19-lap-box').classList.add('highlight');
+  }else{
+    trace.textContent='curr at '+s19Nodes[s19Idx].data+' ('+s19Nodes[s19Idx].addr+') — step '+s19Steps;
+    trace.className='trace-bar';
+    document.getElementById('s19-lap-box').classList.remove('highlight');
+  }
+  setInfo(wrapped?'Lap complete — no nullptr to stop you!':'curr = curr->next moves around the ring');
+}
+
+function s19StepFwd(){
+  var prev=s19Idx;
+  s19Idx=(s19Idx+1)%s19Nodes.length;
+  s19Steps++;
+  if(prev===s19Nodes.length-1&&s19Idx===0)s19Laps++;
+  s19Draw();
+}
+
+function s19Reset(){
+  s19Idx=0;s19Laps=0;s19Steps=0;
+  document.getElementById('s19-lap-box').classList.remove('highlight');
+  s19Draw();
+}
+
+var S19=[
+  function(){
+    showEl('s19-p1');
+    s19Reset();
+    setInfo('Step around the ring — watch the wrap from tail to head');
+  },
+  function(){
+    showEl('s19-p2');
+    setInfo('Always bound traversal — n steps or until curr == start');
+  }
+];
+function resetS19(){
+  ['s19-p1','s19-p2'].forEach(hideEl);
+  s19Reset();
+  s19Step=0;
+}
+var s20Nodes=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'},{data:40,addr:'0x7ffe_a160'}];
+var s20Hl=-1;
+var s20Visit=-1;
+
+function s20Draw(){
+  var c=setupLLCanvas('s20-canvas');
+  if(!c)return;
+  c.height=280;
+  drawCircularLinkedList(c,{
+    nodes:s20Nodes,highlight:s20Hl,visitIdx:s20Visit,returnHl:true,
+    ptrLabels:{
+      head:s20Nodes[0].addr,tail:s20Nodes[s20Nodes.length-1].addr,
+      headHl:true,tailHl:true
+    }
+  });
+  document.getElementById('s20-head').textContent=s20Nodes[0].addr;
+  document.getElementById('s20-tail').textContent=s20Nodes[s20Nodes.length-1].addr;
+}
+
+function s20Reset(){
+  s20Nodes=[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'},{data:40,addr:'0x7ffe_a160'}];
+  s20Hl=-1;s20Visit=-1;
+  document.getElementById('s20-result').querySelector('.ptr-val').textContent='—';
+  document.getElementById('s20-trace').textContent='Ring: 10 → 20 → 30 → 40 → (back to 10)';
+  document.getElementById('s20-trace').className='trace-bar';
+  document.querySelectorAll('#s20 .dll-op-btn').forEach(function(b){b.classList.remove('active');});
+  s20Draw();
+  setInfo('Ring restored — tail->next = head');
+}
+
+function s20Op(op){
+  document.querySelectorAll('#s20 .dll-op-btn').forEach(function(b){b.classList.remove('active');});
+  var trace=document.getElementById('s20-trace');
+  var result=document.getElementById('s20-result').querySelector('.ptr-val');
+
+  if(op==='insert'){
+    s20Nodes.push({data:50,addr:'0x7ffe_a180'});
+    s20Hl=s20Nodes.length-1;s20Visit=-1;
+    trace.textContent='insert(50): new tail; old tail->next = new; new->next = head';
+    trace.className='trace-bar ok';
+    result.textContent='void';
+    setInfo('Only tail->next and new node links need updating');
+  }else if(op==='find'){
+    var idx=s20Nodes.findIndex(function(n){return n.data===20;});
+    s20Visit=idx;s20Hl=idx;
+    trace.textContent='find(20): walk from head until found at 0x7ffe_a120 (stop before looping!)';
+    trace.className='trace-bar';
+    result.textContent='0x7ffe_a120';
+    setInfo('find still O(n) — must not loop forever');
+  }else if(op==='remove'){
+    var ri=s20Nodes.findIndex(function(n){return n.data===20;});
+    if(ri>=0){
+      s20Hl=ri;
+      s20Nodes.splice(ri,1);
+      trace.textContent='remove(20): rewire prev->next, then tail->next = head still closes ring';
+      trace.className='trace-bar ok';
+      result.textContent='1';
+      s20Hl=-1;s20Visit=-1;
+    }else{
+      trace.textContent='remove(20): not found';
+      result.textContent='0';
+    }
+    setInfo('After delete, re-close the ring: tail->next = head');
+  }
+  s20Draw();
+}
+
+var S20=[
+  function(){
+    showEl('s20-p1');
+    s20Reset();
+    setInfo('Click ops — ring stays closed after each operation');
+  },
+  function(){
+    showEl('s20-p2');
+    setInfo('Circular lists model repeating / cyclic processes');
+  }
+];
+function resetS20(){
+  ['s20-p1','s20-p2'].forEach(hideEl);
+  s20Reset();
+  s20Step=0;
+}
+var S21_ROWS=[
+  'Pointers: SLL=1, DLL/CDLL=2. More pointers = more memory per node.',
+  'Linear lists end in nullptr. Circular types close the ring — tail->next = head (and head->prev = tail for CDLL).',
+  'Only doubly-linked types can walk backward without re-scanning from head.',
+  'DLL & CDLL: delete in O(1) if you hold the node*. SLL & CLL need the previous node.',
+  'SLL is leanest. CDLL costs 2 pointers per node but offers max flexibility.',
+  'Circular lists never hit nullptr — traversal MUST stop after n steps or you loop forever!'
+];
+var S21_COLS={
+  sll:'Singly linked — simplest, one direction, nullptr ends the list',
+  dll:'Doubly linked — prev + next, backward walk, O(1) delete at node*',
+  cll:'Circular singly — tail->next = head, great for round-robin cycles',
+  cdll:'Circular doubly — full ring both ways; Linux kernel list_head pattern'
+};
+
+var S21=[function(){showEl('s21-p1');setInfo('Click rows or column headers to explore differences');}];
+function resetS21(){
+  showEl('s21-p1');
+  document.querySelectorAll('.cmp-mrow').forEach(function(r){r.classList.remove('sel');});
+  document.querySelectorAll('.cmp-col').forEach(function(c){c.classList.remove('sel');});
+  document.querySelectorAll('.cmp-matrix td').forEach(function(td){td.classList.remove('col-hl');});
+  document.getElementById('s21-trace').textContent='Click any row or column — compare all four linked list variants';
+  s21Step=0;
+}
+
+function s21Row(i){
+  document.querySelectorAll('.cmp-mrow').forEach(function(r){r.classList.remove('sel');});
+  document.querySelectorAll('.cmp-col').forEach(function(c){c.classList.remove('sel');});
+  document.querySelectorAll('.cmp-matrix td').forEach(function(td){td.classList.remove('col-hl');});
+  var rows=document.querySelectorAll('.cmp-mrow');
+  if(rows[i])rows[i].classList.add('sel');
+  document.getElementById('s21-trace').textContent=S21_ROWS[i]||'';
+  setInfo(S21_ROWS[i]||'');
+}
+
+function s21Col(type){
+  document.querySelectorAll('.cmp-mrow').forEach(function(r){r.classList.remove('sel');});
+  document.querySelectorAll('.cmp-col').forEach(function(c){c.classList.remove('sel');});
+  document.querySelectorAll('.cmp-matrix td').forEach(function(td){td.classList.remove('col-hl');});
+  var col=document.querySelector('.cmp-col[data-type="'+type+'"]');
+  if(col)col.classList.add('sel');
+  var idx={sll:1,dll:2,cll:3,cdll:4}[type];
+  document.querySelectorAll('.cmp-mrow').forEach(function(row){
+    var cells=row.querySelectorAll('td');
+    if(cells[idx])cells[idx].classList.add('col-hl');
+  });
+  document.getElementById('s21-trace').textContent=S21_COLS[type]||'';
+  setInfo(S21_COLS[type]||'');
+}
+var s22Type='sll';
+var S22_INFO={
+  sll:{
+    trace:'Singly: one next pointer per node — linear chain ending at nullptr',
+    pills:['next only','nullptr end','head + tail'],
+    info:'Simplest linked list — CS2308 starting point'
+  },
+  dll:{
+    trace:'Doubly: prev + next — walk forward OR backward, ends at nullptr',
+    pills:['prev + next','backward walk','O(1) delete@node*'],
+    info:'Extra prev pointer — browser history, LRU cache'
+  },
+  cll:{
+    trace:'Circular: tail->next = head — no end, forms a ring',
+    pills:['tail→head','no nullptr','loop risk'],
+    info:'Round-robin, playlists — cycle forever forward'
+  },
+  cdll:{
+    trace:'Circular doubly: head->prev = tail AND tail->next = head — full bidirectional ring',
+    pills:['ring both ways','O(1) delete','Linux list_head'],
+    info:'Most flexible — kernel lists, advanced iterators'
+  }
+};
+
+var S22=[function(){showEl('s22-p1');s22Show('sll');setInfo('Switch tabs — same data, four different structures');}];
+function resetS22(){showEl('s22-p1');s22Type='sll';s22Step=0;}
+
+function s22Show(type){
+  s22Type=type;
+  ['sll','dll','cll','cdll'].forEach(function(t){
+    var btn=document.getElementById('s22-t-'+t);
+    if(btn)btn.classList.toggle('active',t===type);
+  });
+  var d=S22_INFO[type];
+  document.getElementById('s22-trace').textContent=d.trace;
+  document.getElementById('s22-trace').className='trace-bar'+(type==='cll'||type==='cdll'?' ok':'');
+  var pills=document.getElementById('s22-pills');
+  pills.innerHTML=d.pills.map(function(p){return '<span class="cmp-pill">'+p+'</span>';}).join('');
+  var c=setupLLCanvas('s22-canvas');
+  drawListComparison(c,type);
+  setInfo(d.info);
+}
+var S23_PICKS={
+  sll:{
+    trace:'SLL: minimal memory, forward-only — hash chains, simple queues',
+    q:'Need forward-only traversal and minimal memory per node.',
+    ans:'Singly linked list'
+  },
+  dll:{
+    trace:'DLL: backward navigation + O(1) delete — browser history, LRU, undo/redo',
+    q:'Need to go backward AND delete a known node in O(1).',
+    ans:'Doubly linked list'
+  },
+  cll:{
+    trace:'CLL: cyclic forward processing — schedulers, playlists, Josephus',
+    q:'Process items in a repeating cycle — no real "end" of list.',
+    ans:'Circular linked list'
+  },
+  cdll:{
+    trace:'CDLL: full ring + bidirectional — Linux list_head, advanced caches',
+    q:'Need a cycle AND backward walk AND O(1) splice anywhere.',
+    ans:'Circular doubly linked list'
+  }
+};
+
+var S23_SCENARIOS=[
+  {q:'Forward-only, least memory.',ans:'Singly linked list',type:'sll'},
+  {q:'Back button in a browser.',ans:'Doubly linked list',type:'dll'},
+  {q:'CPU time-slices rotate forever.',ans:'Circular linked list',type:'cll'},
+  {q:'Kernel list that splices in O(1) both ways.',ans:'Circular doubly linked list',type:'cdll'}
+];
+var s23ScenIdx=0;
+
+function s23Pick(type){
+  document.querySelectorAll('.rw-card').forEach(function(c){c.classList.remove('sel');});
+  var card=document.querySelector('.rw-'+type);
+  if(card)card.classList.add('sel');
+  var p=S23_PICKS[type];
+  document.getElementById('s23-trace').textContent=p.trace;
+  document.getElementById('s23-trace').className='trace-bar ok';
+  setInfo(p.trace);
+}
+
+var S23=[
+  function(){
+    showEl('s23-p1');
+    s23Pick('sll');
+    setInfo('Click each card — real systems that use each list type');
+  },
+  function(){
+    showEl('s23-p2');
+    s23NextScenario();
+    setInfo('Match the scenario to the right structure');
+  }
+];
+
+function s23NextScenario(){
+  var s=S23_SCENARIOS[s23ScenIdx%S23_SCENARIOS.length];
+  document.getElementById('s23-q').textContent=s.q;
+  document.getElementById('s23-ans').innerHTML='→ <strong>'+s.ans+'</strong>';
+  s23Pick(s.type);
+  s23ScenIdx++;
+}
+
+function resetS23(){
+  ['s23-p1','s23-p2'].forEach(hideEl);
+  document.querySelectorAll('.rw-card').forEach(function(c){c.classList.remove('sel');});
+  s23ScenIdx=0;
+  s23Step=0;
+}
+// ══════════════════════════════════
+// SLIDE 24 — CODING CHALLENGES
+// ══════════════════════════════════
+var s24Key='reverse';
+var s24ShowResult=false;
+
+var S24_CHALLENGES={
+  reverse:{
+    title:'Reverse a Singly Linked List',
+    meta:'Uses: SinglyLinkedList · pointers only · ~45 min',
+    sig:'Node* reverse(Node* head);',
+    trace:'Goal: flip every next pointer — return new head (old tail)',
+    hint:'Use three pointers: prev, curr, next. Never lose the rest of the list.',
+    before:[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'}],
+    after:[{data:30,addr:'0x7ffe_a140'},{data:20,addr:'0x7ffe_a120'},{data:10,addr:'0x7ffe_a100'}],
+    draw:'sll',
+    steps:[
+      'Start with head — list is 10 → 20 → 30 → null',
+      'Walk with curr; save next before rewiring',
+      'curr->next = prev; advance prev and curr',
+      'When curr == null, prev is the new head — return it'
+    ],
+    tests:['reverse(10→20→30) → 30→20→10','reverse(single) → same node','reverse(empty) → nullptr']
+  },
+  nth:{
+    title:'Remove the nth Node from End',
+    meta:'Uses: SinglyLinkedList · two pointers · one pass · ~40 min',
+    sig:'Node* removeNthFromEnd(Node* head, int n);',
+    trace:'Goal: delete the node n steps from the tail — return updated head',
+    hint:'Move fast n steps ahead of slow. Walk both until fast->next is null. Rewire slow->next.',
+    before:[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'},{data:40,addr:'0x7ffe_a160'}],
+    after:[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:40,addr:'0x7ffe_a160'}],
+    draw:'sll',
+    n:2,
+    steps:[
+      'Example: list 10→20→30→40, n=2 — remove 30 (2nd from end)',
+      'Dummy node before head handles deleting the first node',
+      'Advance fast n steps ahead of slow',
+      'Walk both until fast reaches last node — slow is just before target',
+      'slow->next = slow->next->next; return dummy->next'
+    ],
+    tests:['10→20→30→40, n=2 → 10→20→40','10→20, n=2 → 20 (delete head)','single node, n=1 → nullptr']
+  },
+  merge:{
+    title:'Merge Two Sorted Linked Lists',
+    meta:'Uses: two SinglyLinkedList heads · ~50 min',
+    sig:'Node* mergeSorted(Node* a, Node* b);',
+    trace:'Goal: one sorted list from two sorted inputs — reuse existing nodes',
+    hint:'Dummy head node simplifies stitching. Compare a->data vs b->data each step.',
+    before:[{data:10,addr:'0x7ffe_a100'},{data:30,addr:'0x7ffe_a140'}],
+    after:[{data:10,addr:'0x7ffe_a100'},{data:20,addr:'0x7ffe_a120'},{data:30,addr:'0x7ffe_a140'}],
+    before2:[{data:20,addr:'0x7ffe_a120'}],
+    draw:'merge',
+    steps:[
+      'Attach dummy node; tail pointer tracks end of result',
+      'While both a and b: pick smaller data, link to tail, advance',
+      'Attach remaining non-empty list',
+      'Return dummy->next (skip dummy node)'
+    ],
+    tests:['{1,3,5}+{2,4} → {1,2,3,4,5}','one empty → other list','both empty → nullptr']
+  }
+};
+
+function s24DrawCanvas(id,nodes,drawType){
+  var c=document.getElementById(id);
+  if(!c||!nodes)return;
+  var wrap=c.parentElement;
+  c.width=Math.max(280,(wrap?wrap.clientWidth:300)-16);
+  c.height=150;
+  if(drawType==='sll'||drawType==='merge'){
+    drawLinkedList(c,{nodes:nodes,ptrLabels:nodes.length?{head:nodes[0].addr,tail:nodes[nodes.length-1].addr}:{}});
+  }
+}
+
+function s24RenderViz(){
+  var ch=S24_CHALLENGES[s24Key];
+  s24DrawCanvas('s24-canvas-before',ch.before,ch.draw);
+  var afterNodes=ch.after;
+  if(s24Key==='merge'&&s24ShowResult){
+    afterNodes=ch.after;
+    s24DrawCanvas('s24-canvas-after',afterNodes,'sll');
+    return;
+  }
+  if(s24Key==='merge'&&!s24ShowResult){
+    s24DrawCanvas('s24-canvas-after',ch.before2||[],'sll');
+    return;
+  }
+  if(s24ShowResult){
+    s24DrawCanvas('s24-canvas-after',afterNodes,ch.draw);
+  }else{
+    var c=document.getElementById('s24-canvas-after');
+    if(c){var ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle='#f8fafc';ctx.fillRect(0,0,c.width,c.height);
+      ctx.fillStyle='#9ca3af';ctx.font='12px -apple-system,sans-serif';ctx.textAlign='center';ctx.fillText('click "show →" to reveal ideal result',c.width/2,c.height/2);}
+  }
+}
+
+function s24FillDetails(){
+  var ch=S24_CHALLENGES[s24Key];
+  document.getElementById('s24-title').textContent=ch.title;
+  document.getElementById('s24-meta').textContent=ch.meta;
+  document.getElementById('s24-sig').textContent=ch.sig;
+  document.getElementById('s24-trace').textContent=ch.trace;
+  document.getElementById('s24-hint').innerHTML='<strong>Tip:</strong> '+ch.hint;
+  var stepsEl=document.getElementById('s24-steps');
+  stepsEl.innerHTML=ch.steps.map(function(s,i){
+    return '<div class="cp-step"><span class="cp-step-n">'+(i+1)+'</span><span>'+s+'</span></div>';
+  }).join('');
+  var testsEl=document.getElementById('s24-tests');
+  testsEl.innerHTML=ch.tests.map(function(t){return '<div class="cp-test">'+t+'</div>';}).join('');
+}
+
+function s24Pick(key){
+  s24Key=key;
+  s24ShowResult=false;
+  ['reverse','nth','merge'].forEach(function(k){
+    var btn=document.getElementById('cp-'+({reverse:'rev',nth:'nth',merge:'merge'}[k]));
+    if(btn)btn.classList.toggle('active',k===key);
+  });
+  s24FillDetails();
+  s24RenderViz();
+  setInfo(S24_CHALLENGES[key].trace);
+}
+
+function s24ToggleResult(){
+  s24ShowResult=!s24ShowResult;
+  s24RenderViz();
+  setInfo(s24ShowResult?'Ideal outcome — implement this transformation':'Before state — plan your pointer moves');
+}
+
+var SLIDE24=[
+  function(){
+    showEl('s24-p1');
+    s24Pick('reverse');
+    setInfo('Pick a challenge — see before/after visuals');
+  },
+  function(){
+    showEl('s24-p2');
+    s24FillDetails();
+    setInfo('Ideal steps + test cases — implement in main.cpp');
+  }
+];
+
+function resetS24(){
+  hideEl('s24-p2');
+  showEl('s24-p1');
+  s24Key='reverse';
+  s24ShowResult=false;
+  s24Step=0;
+}
+// ══════════════════════════════════
+// SLIDE MANAGER (24 slides)
+// ══════════════════════════════════
+var curSlide=1, SLIDE_COUNT=24;
+var s2Step=0,s3Step=0,s4Step=0,s5Step=0,s6Step=0,s7Step=0,s8Step=0,s9Step=0,s10Step=0;
+var s11Step=0,s12Step=0,s13Step=0,s14Step=0,s15Step=0,s16Step=0,s17Step=0;
+var s18Step=0,s19Step=0,s20Step=0,s21Step=0,s22Step=0,s23Step=0,s24Step=0;
+
+function rewindSteps(arr, stepVar, resetFn){
+  if(window[stepVar]>1){window[stepVar]--;resetFn();for(var i=0;i<window[stepVar];i++)arr[i]();return true;}
+  return false;
+}
+
+function onEnterSlide(n){
+  if(n===1)setInfo('Press → to advance');
+  if(n===2){resetS2();S2[0]();s2Step=1;}
+  if(n===3){resetS3();S3[0]();s3Step=1;}
+  if(n===4){resetS4();S4[0]();s4Step=1;}
+  if(n===5){resetS5();S5[0]();s5Step=1;}
+  if(n===6){resetS6();S6[0]();s6Step=1;}
+  if(n===7){resetS7();S7[0]();s7Step=1;}
+  if(n===8){resetS8();S8[0]();s8Step=1;}
+  if(n===9){resetS9();S9[0]();s9Step=1;}
+  if(n===10){resetS10();S10[0]();s10Step=1;}
+  if(n===11){resetS11();S11[0]();s11Step=1;}
+  if(n===12){resetS12();S12[0]();s12Step=1;}
+  if(n===13){resetS13();S13[0]();s13Step=1;}
+  if(n===14){resetS14();S14[0]();s14Step=1;}
+  if(n===15){resetS15();S15[0]();s15Step=1;}
+  if(n===16){resetS16();S16[0]();s16Step=1;}
+  if(n===17){resetS17();S17[0]();s17Step=1;}
+  if(n===18){resetS18();S18[0]();s18Step=1;}
+  if(n===19){resetS19();S19[0]();s19Step=1;}
+  if(n===20){resetS20();S20[0]();s20Step=1;}
+  if(n===21){resetS21();S21[0]();s21Step=1;}
+  if(n===22){resetS22();S22[0]();s22Step=1;}
+  if(n===23){resetS23();S23[0]();s23Step=1;}
+  if(n===24){resetS24();SLIDE24[0]();s24Step=1;}
+}
+
+function goSlide(n){
+  clearAll();
+  document.getElementById('s'+curSlide).classList.remove('active');
+  document.getElementById('s'+n).classList.add('active');
+  curSlide=n;
+  setCounter('Slide '+n+' / '+SLIDE_COUNT);
+  updateJumpActive();
+  resetSlideScroll();
+  onEnterSlide(n);
+  requestAnimationFrame(function(){applySlideZoom();});
+}
+
+function buildJumpPanel(){
+  var grid=document.getElementById('jump-grid');
+  if(!grid||grid.children.length)return;
+  for(var i=1;i<=SLIDE_COUNT;i++){
+    var b=document.createElement('button');
+    b.className='jump-btn'+(i===curSlide?' active':'');
+    b.textContent=i;
+    b.title='Slide '+i;
+    b.onclick=function(n){return function(){jumpToSlide(n);};}(i);
+    grid.appendChild(b);
+  }
+}
+
+function updateJumpActive(){
+  document.querySelectorAll('.jump-btn').forEach(function(b,i){
+    b.classList.toggle('active',i+1===curSlide);
+  });
+}
+
+function jumpToSlide(n){
+  if(n<1||n>SLIDE_COUNT||n===curSlide)return;
+  toggleJumpPanel(false);
+  goSlide(n);
+}
+
+function toggleJumpPanel(show){
+  var panel=document.getElementById('jump-panel');
+  var toggle=document.getElementById('jump-toggle');
+  if(!panel)return;
+  if(show===undefined)show=!panel.classList.contains('open');
+  panel.classList.toggle('open',show);
+  if(toggle)toggle.classList.toggle('active',show);
+}
+
+function nextStep(){
+  clearAll();
+  if(curSlide===1){goSlide(2);return;}
+  if(curSlide===2){if(s2Step<S2.length){S2[s2Step]();s2Step++;return;}goSlide(3);return;}
+  if(curSlide===3){if(s3Step<S3.length){S3[s3Step]();s3Step++;return;}goSlide(4);return;}
+  if(curSlide===4){if(s4Next())return;goSlide(5);return;}
+  if(curSlide===5){if(s5Next())return;goSlide(6);return;}
+  if(curSlide===6){if(s6Next())return;goSlide(7);return;}
+  if(curSlide===7){if(s7Next())return;goSlide(8);return;}
+  if(curSlide===8){if(s8Next())return;goSlide(9);return;}
+  if(curSlide===9){if(s9Step<S9.length){S9[s9Step]();s9Step++;return;}goSlide(10);return;}
+  if(curSlide===10){if(s10Step<S10.length){S10[s10Step]();s10Step++;return;}goSlide(11);return;}
+  if(curSlide===11){if(s11Step<S11.length){S11[s11Step]();s11Step++;return;}goSlide(12);return;}
+  if(curSlide===12){if(s12Step<S12.length){S12[s12Step]();s12Step++;return;}goSlide(13);return;}
+  if(curSlide===13){if(s13Step<S13.length){S13[s13Step]();s13Step++;return;}goSlide(14);return;}
+  if(curSlide===14){if(s14Step<S14.length){S14[s14Step]();s14Step++;return;}goSlide(15);return;}
+  if(curSlide===15){if(s15Step<S15.length){S15[s15Step]();s15Step++;return;}goSlide(16);return;}
+  if(curSlide===16){if(s16Step<S16.length){S16[s16Step]();s16Step++;return;}goSlide(17);return;}
+  if(curSlide===17){if(s17Step<S17.length){S17[s17Step]();s17Step++;return;}goSlide(18);return;}
+  if(curSlide===18){if(s18Step<S18.length){S18[s18Step]();s18Step++;return;}goSlide(19);return;}
+  if(curSlide===19){if(s19Step<S19.length){S19[s19Step]();s19Step++;return;}goSlide(20);return;}
+  if(curSlide===20){if(s20Step<S20.length){S20[s20Step]();s20Step++;return;}goSlide(21);return;}
+  if(curSlide===21){if(s21Step<S21.length){S21[s21Step]();s21Step++;return;}goSlide(22);return;}
+  if(curSlide===22){if(s22Step<S22.length){S22[s22Step]();s22Step++;return;}goSlide(23);return;}
+  if(curSlide===23){if(s23Step<S23.length){S23[s23Step]();s23Step++;return;}goSlide(24);return;}
+  if(curSlide===24){if(s24Step<SLIDE24.length){SLIDE24[s24Step]();s24Step++;return;}}
+}
+
+function prevSlide(){
+  clearAll();
+  if(curSlide===1)return;
+  if(curSlide===2){if(rewindSteps(S2,'s2Step',resetS2))return;goSlide(1);return;}
+  if(curSlide===3){if(rewindSteps(S3,'s3Step',resetS3))return;goSlide(2);return;}
+  if(curSlide===4){if(s4Prev())return;goSlide(3);return;}
+  if(curSlide===5){if(s5Prev())return;goSlide(4);return;}
+  if(curSlide===6){if(s6Prev())return;goSlide(5);return;}
+  if(curSlide===7){if(s7Prev())return;goSlide(6);return;}
+  if(curSlide===8){if(s8Prev())return;goSlide(7);return;}
+  if(curSlide===9){
+    if(s9Step>1){s9Step--;resetS9();for(var i=0;i<s9Step;i++)S9[i]();return;}
+    goSlide(8);return;
+  }
+  if(curSlide===10){if(rewindSteps(S10,'s10Step',resetS10))return;goSlide(9);return;}
+  if(curSlide===11){if(rewindSteps(S11,'s11Step',resetS11))return;goSlide(10);return;}
+  if(curSlide===12){if(rewindSteps(S12,'s12Step',resetS12))return;goSlide(11);return;}
+  if(curSlide===13){if(rewindSteps(S13,'s13Step',resetS13))return;goSlide(12);return;}
+  if(curSlide===14){if(rewindSteps(S14,'s14Step',resetS14))return;goSlide(13);return;}
+  if(curSlide===15){if(rewindSteps(S15,'s15Step',resetS15))return;goSlide(14);return;}
+  if(curSlide===16){if(rewindSteps(S16,'s16Step',resetS16))return;goSlide(15);return;}
+  if(curSlide===17){
+    if(rewindSteps(S17,'s17Step',resetS17))return;
+    goSlide(16);return;
+  }
+  if(curSlide===18){if(rewindSteps(S18,'s18Step',resetS18))return;goSlide(17);return;}
+  if(curSlide===19){if(rewindSteps(S19,'s19Step',resetS19))return;goSlide(18);return;}
+  if(curSlide===20){
+    if(rewindSteps(S20,'s20Step',resetS20))return;
+    goSlide(19);return;
+  }
+  if(curSlide===21){if(rewindSteps(S21,'s21Step',resetS21))return;goSlide(20);return;}
+  if(curSlide===22){if(rewindSteps(S22,'s22Step',resetS22))return;goSlide(21);return;}
+  if(curSlide===23){
+    if(rewindSteps(S23,'s23Step',resetS23))return;
+    goSlide(22);return;
+  }
+  if(curSlide===24){
+    if(rewindSteps(SLIDE24,'s24Step',resetS24))return;
+    goSlide(23);return;
+  }
+}
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();nextStep();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();prevSlide();}
+  else if(e.key==='Escape')toggleJumpPanel(false);
+  else if(e.key==='p'||e.key==='P')setMode('pen');
+  else if(e.key==='e'||e.key==='E')setMode('eraser');
+  else if(e.key==='c'||e.key==='C')clearAll();
+  else if(e.key==='1')setColor('#ef4444','col-r');
+  else if(e.key==='2')setColor('#3b82f6','col-b');
+  else if(e.key==='3')setColor('#22c55e','col-g');
+  else if(e.key==='4')setColor('#f59e0b','col-y');
+  else if(e.key==='5')setColor('#ffffff','col-w');
+});
+
+window.addEventListener('resize',function(){
+  if(curSlide===2&&s2Step>=1){var c=setupLLCanvas('s2-canvas');if(c&&s2Step===1)drawLinkedList(c,{nodes:[{data:10,addr:'0x7ffe_a100'}],highlight:0,ptrLabels:{head:'0x7ffe_a100',headHl:true}});}
+  if(curSlide===4)s4Render(Math.max(0,s4Step-1));
+  if(curSlide===9)s9Update();
+  if(curSlide===10)s10Render();
+  if(curSlide===12)s12Update();
+  if(curSlide===16)s16Draw();
+  if(curSlide===17)s17Draw();
+  if(curSlide===19)s19Draw();
+  if(curSlide===20)s20Draw();
+  if(curSlide===22)s22Show(s22Type||'sll');
+  if(curSlide===24)s24RenderViz();
+});
+
+buildJumpPanel();
+initCodeBlocks();
+initZoom();
+document.addEventListener('click',function(e){
+  var panel=document.getElementById('jump-panel');
+  var toggle=document.getElementById('jump-toggle');
+  if(!panel||!panel.classList.contains('open'))return;
+  if(!panel.contains(e.target)&&toggle&&!toggle.contains(e.target))toggleJumpPanel(false);
+});
+</script>
+</body>
+</html>

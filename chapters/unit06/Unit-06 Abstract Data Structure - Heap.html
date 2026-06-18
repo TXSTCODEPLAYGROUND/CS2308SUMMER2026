@@ -1,0 +1,2716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Heap Data Structure — C++</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#fff;color:#1a1a2e;width:100vw;height:100vh;overflow:hidden;}
+
+#draw-canvas{position:fixed;inset:0;z-index:999;pointer-events:none;}
+#draw-canvas.pen-on{pointer-events:all;cursor:none;}
+#draw-canvas.eraser-on{pointer-events:all;cursor:none;}
+#draw-cursor{position:fixed;left:0;top:0;width:17px;height:17px;border-radius:50%;border:2px solid #111827;background:rgba(255,255,255,.88);box-shadow:0 0 0 2px rgba(255,255,255,.95),0 0 9px rgba(0,0,0,.45);pointer-events:none;z-index:2000;display:none;transform:translate(-50%,-50%);}
+#draw-cursor::before,#draw-cursor::after{content:'';position:absolute;background:#111827;left:50%;top:50%;transform:translate(-50%,-50%);}
+#draw-cursor::before{width:11px;height:2px;}
+#draw-cursor::after{width:2px;height:11px;}
+#draw-cursor.show{display:block;}
+#draw-cursor.eraser{border-color:#0f172a;background:rgba(255,255,255,.94);border-style:dashed;width:23px;height:23px;}
+
+#toolbar{position:fixed;left:12px;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(26,26,46,0.94);
+  border-radius:22px;padding:10px 8px;z-index:1000;box-shadow:0 4px 16px rgba(0,0,0,0.25);}
+.tb{width:30px;height:30px;border-radius:50%;border:1.5px solid transparent;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;
+  background:rgba(255,255,255,0.08);transition:all 0.2s;}
+.tb:hover{background:rgba(255,255,255,0.18);}
+.tb.active{background:#534AB7;border-color:#7F77DD;}
+.cb{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);cursor:pointer;transition:all 0.2s;}
+.cb:hover{transform:scale(1.2);}
+.cb.active{border-color:white;transform:scale(1.25);}
+.sb{border-radius:50%;background:white;cursor:pointer;border:2px solid rgba(255,255,255,0.25);}
+.sb.active{border-color:#a78bfa;}
+.tdiv{width:18px;height:1px;background:rgba(255,255,255,0.15);margin:2px 0;}
+
+.nav{position:fixed;bottom:14px;right:16px;display:flex;gap:6px;z-index:1000;}
+.nbtn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:16px;font-weight:700;cursor:pointer;border:none;transition:all 0.2s;}
+.pb{background:#f1f5f9;color:#6b7280;}.pb:hover{background:#e2e8f0;}
+.nb{background:#534AB7;color:white;}.nb:hover{background:#3C3489;}
+.info-bar{position:fixed;bottom:18px;left:16px;font-size:11px;color:#9ca3af;max-width:520px;z-index:1000;}
+.top-chrome{position:fixed;top:12px;right:16px;display:flex;align-items:center;gap:8px;z-index:1000;}
+.zoom-bar{position:fixed;top:12px;left:56px;display:flex;align-items:center;gap:4px;z-index:1000;
+  background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:4px 8px;box-shadow:0 2px 10px rgba(15,23,42,.06);}
+.zoom-btn{width:26px;height:26px;border-radius:7px;border:1px solid transparent;background:transparent;
+  cursor:pointer;font-size:13px;line-height:1;color:#6b7280;display:flex;align-items:center;justify-content:center;
+  padding:0;font-family:inherit;transition:all .15s;}
+.zoom-btn:hover{border-color:#c7d2fe;color:#534AB7;background:#f5f3ff;}
+.zoom-btn.active{background:#534AB7;border-color:#534AB7;color:#fff;}
+.zoom-slider{width:72px;height:4px;accent-color:#534AB7;cursor:pointer;margin:0 2px;}
+.zoom-pct{font-size:10px;font-weight:700;color:#6b7280;min-width:34px;text-align:right;font-variant-numeric:tabular-nums;}
+.counter{font-size:11px;color:#9ca3af;background:white;padding:3px 9px;border-radius:20px;border:1px solid #e5e7eb;}
+.jump-toggle{width:30px;height:30px;border-radius:9px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;color:#6b7280;transition:all .2s;padding:0;}
+.jump-toggle:hover,.jump-toggle.active{border-color:#534AB7;color:#534AB7;background:#f5f3ff;}
+.grid-icon{display:grid;grid-template-columns:1fr 1fr;gap:2.5px;width:12px;height:12px;}
+.grid-icon span{background:currentColor;border-radius:1px;}
+.jump-panel{position:fixed;top:48px;right:16px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;
+  padding:10px 12px;box-shadow:0 8px 28px rgba(15,23,42,.12);z-index:1001;display:none;max-height:70vh;overflow-y:auto;}
+.jump-panel.open{display:block;}
+.jump-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;}
+.jump-btn{width:28px;height:26px;border-radius:7px;border:1px solid #e5e7eb;background:#fff;font-size:11px;
+  font-weight:700;color:#6b7280;cursor:pointer;padding:0;transition:all .15s;font-family:inherit;}
+.jump-btn:hover{border-color:#534AB7;color:#534AB7;background:#f5f3ff;}
+.jump-btn.active{background:#534AB7;border-color:#534AB7;color:#fff;}
+
+.slide{position:absolute;inset:0;display:none;overflow:auto;overflow-x:auto;
+  background:#fff;padding:42px 20px 58px;-webkit-overflow-scrolling:touch;}
+.slide.active{display:block;}
+.slide>.cpp-wrap{margin:0 auto;transform-origin:top center;transition:transform .12s ease;}
+.sl-title{font-size:24px;font-weight:700;color:#1a1a2e;text-align:center;margin-bottom:14px;}
+.sl-title span{color:#534AB7;}
+.sl-sub{font-size:13px;color:#6b7280;text-align:center;margin:-8px 0 14px;line-height:1.5;}
+.panel{background:#fff;border:1.5px solid #e5e7eb;border-radius:16px;padding:15px 17px;box-shadow:0 6px 18px rgba(15,23,42,.05);opacity:0;transform:translateY(10px);transition:all .5s cubic-bezier(0.34,1.2,0.64,1);}
+.panel.show{opacity:1;transform:translateY(0);}
+.panel-kick{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:#534AB7;font-weight:800;}
+.panel-title{font-size:15px;font-weight:700;color:#1a1a2e;margin:3px 0 8px;}
+.panel-sub{font-size:12px;color:#6b7280;line-height:1.55;}
+
+.cpp-wrap{width:100%;max-width:1180px;padding:8px 26px 56px;display:flex;flex-direction:column;align-items:center;gap:14px;}
+.cpp-split{display:grid;grid-template-columns:1fr 1fr;gap:18px;width:100%;align-items:start;}
+.cpp-split.wide{grid-template-columns:1.1fr .9fr;}
+@media(max-width:900px){.cpp-split,.cpp-split.wide{grid-template-columns:1fr;}}
+
+.code-block{position:relative;background:#1a1a2e;border-radius:12px;padding:32px 16px 14px;font-family:'Courier New',Consolas,monospace;font-size:11px;line-height:1.65;color:#e5e7eb;overflow-x:auto;white-space:pre;border:1.5px solid transparent;}
+.code-block:has(.code-line){white-space:normal;padding-left:3.6em;counter-reset:code-ln;}
+.code-block .code-line{display:block;position:relative;white-space:pre;counter-increment:code-ln;}
+.code-block .code-line:empty{min-height:1.65em;}
+.code-block .code-line::before{
+  content:counter(code-ln);position:absolute;left:-3em;width:2.6em;text-align:right;
+  color:#9ca3af;opacity:0;font-size:.95em;font-weight:600;user-select:none;pointer-events:none;transition:opacity .15s ease;
+}
+.code-block.show-lines .code-line::before{opacity:1;}
+.code-block.theme-light.show-lines .code-line::before{color:#64748b;}
+.code-block.sm{font-size:10px;padding:30px 14px 12px;}
+.code-block .kw{color:#c084fc;}
+.code-block .ty{color:#67e8f9;}
+.code-block .cm{color:#6b7280;font-style:italic;}
+.code-block .num{color:#fbbf24;}
+.code-block .str{color:#86efac;}
+.code-block .hl{background:rgba(29,158,117,.35);display:inline-block;width:calc(100% + 8px);margin-left:-4px;padding:0 4px;border-radius:4px;border-left:3px solid #1D9E75;}
+.code-block .hl-warn{background:rgba(239,68,68,.25);border-left-color:#ef4444;}
+.code-block .hl-ptr{background:rgba(59,130,246,.25);border-left-color:#3b82f6;}
+.code-block-toolbar{position:absolute;top:10px;right:10px;display:flex;gap:2px;z-index:3;}
+.code-ln-btn,.code-theme-btn,.code-edit-btn{width:24px;height:24px;border-radius:6px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;color:inherit;opacity:.32;transition:opacity .2s ease,background .2s ease,transform .15s ease;font-family:inherit;flex-shrink:0;}
+.code-ln-btn:hover,.code-theme-btn:hover,.code-edit-btn:hover{opacity:.88;background:rgba(255,255,255,.08);}
+.code-ln-btn:active,.code-theme-btn:active,.code-edit-btn:active{transform:scale(.94);}
+.code-ln-btn:focus-visible,.code-theme-btn:focus-visible,.code-edit-btn:focus-visible{outline:2px solid rgba(83,74,183,.45);outline-offset:2px;opacity:.88;}
+.code-ln-btn.active,.code-theme-btn.active{opacity:.72;}
+.code-ln-btn svg,.code-theme-btn svg,.code-edit-btn svg{display:block;flex-shrink:0;}
+.code-edit-btn.has-override{opacity:.72;}
+.code-edit-btn.has-override::after{content:'';position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:#1D9E75;}
+.code-edit-btn{position:relative;}
+.code-block.theme-light .code-ln-btn:hover,.code-block.theme-light .code-theme-btn:hover,.code-block.theme-light .code-edit-btn:hover{background:rgba(15,23,42,.06);}
+.code-block-editing{padding-bottom:10px;}
+.code-block-editor{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.code-edit-textarea{width:100%;min-height:9em;resize:vertical;border-radius:8px;border:1.5px solid rgba(83,74,183,.35);background:#0f0f1a;color:#e5e7eb;font-family:inherit;font-size:inherit;line-height:1.65;padding:10px 12px;box-sizing:border-box;}
+.code-block.theme-light .code-edit-textarea{background:#fff;color:#1e293b;border-color:#c7d2fe;}
+.code-edit-textarea:focus{outline:2px solid rgba(83,74,183,.4);outline-offset:1px;}
+.code-edit-actions{display:flex;flex-wrap:wrap;gap:6px;}
+.code-edit-save,.code-edit-cancel,.code-edit-revert{font-size:10px;font-weight:600;padding:5px 12px;border-radius:8px;border:1.5px solid transparent;cursor:pointer;font-family:inherit;}
+.code-edit-save{background:#534AB7;color:#fff;border-color:#534AB7;}
+.code-edit-save:hover{background:#4338a8;}
+.code-edit-cancel{background:transparent;color:inherit;border-color:#4b5563;opacity:.85;}
+.code-edit-cancel:hover{opacity:1;background:rgba(255,255,255,.06);}
+.code-edit-revert{background:transparent;color:#fbbf24;border-color:#fbbf24;opacity:.9;}
+.code-edit-revert:hover{opacity:1;background:rgba(251,191,36,.1);}
+.code-block.theme-light .code-edit-cancel{border-color:#cbd5e1;}
+.code-block.theme-light .code-edit-cancel:hover{background:rgba(15,23,42,.04);}
+.code-block.theme-light{background:#f8fafc;color:#1e293b;border-color:#e2e8f0;}
+.code-block.theme-light .kw{color:#7c3aed;}
+.code-block.theme-light .ty{color:#0891b2;}
+.code-block.theme-light .cm{color:#64748b;}
+.code-block.theme-light .num{color:#d97706;}
+.code-block.theme-light .str{color:#16a34a;}
+.code-block.theme-light .hl{background:rgba(29,158,117,.18);border-left-color:#1D9E75;}
+.code-block.theme-light .hl-warn{background:rgba(239,68,68,.12);border-left-color:#ef4444;}
+.code-block.theme-light .hl-ptr{background:rgba(59,130,246,.12);border-left-color:#3b82f6;}
+.code-block.theme-light.locked .reveal-target{background:#cbd5e1;}
+.code-block.theme-light.locked .reveal-target::after{color:#64748b;}
+.locked .reveal-target{color:transparent;background:#374151;border-radius:4px;display:inline;}
+.locked .reveal-target .err{color:transparent;}
+.code-block>.reveal-target{display:block;width:100%;}
+.locked .reveal-target::after{content:' ????? ';color:#9ca3af;}
+.revealed .reveal-target{color:inherit;background:none;}
+.revealed .reveal-target::after{content:none;}
+.out-box.locked,.trace-bar.locked{opacity:.7;}
+.out-box.revealed,.trace-bar.revealed{opacity:1;}
+
+.trace-bar{background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:10px 14px;font-size:12px;color:#534AB7;font-weight:700;line-height:1.5;min-height:42px;}
+.trace-bar.warn{background:#fff5f5;border-color:#fecaca;color:#b91c1c;}
+.trace-bar.ok{background:#ecfdf5;border-color:#a7f3d0;color:#15803d;}
+
+.quiz-box{background:linear-gradient(135deg,#f5f3ff,#fff);border:2px dashed #c7d2fe;border-radius:14px;padding:14px 16px;margin:10px 0;}
+.quiz-q{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:10px;line-height:1.5;}
+.quiz-opts{display:flex;flex-wrap:wrap;gap:8px;}
+.quiz-btn{padding:8px 14px;border-radius:10px;border:2px solid #e5e7eb;background:#fff;font-size:11.5px;font-weight:600;color:#374151;cursor:pointer;transition:all .2s;font-family:inherit;text-align:left;}
+.quiz-btn:hover:not(:disabled){border-color:#534AB7;color:#534AB7;background:#f5f3ff;}
+.quiz-btn:disabled{cursor:default;opacity:.85;}
+.quiz-btn.correct{border-color:#1D9E75;background:#ecfdf5;color:#15803d;}
+.quiz-btn.wrong{border-color:#ef4444;background:#fff5f5;color:#b91c1c;animation:shake .35s;}
+.quiz-fb{font-size:11.5px;margin-top:8px;font-weight:600;min-height:18px;}
+.quiz-fb.ok{color:#15803d;}
+.quiz-fb.warn{color:#b91c1c;}
+
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:up .7s ease both;}
+
+/* ── heap deck widgets ── */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;align-items:start;}
+.split-3{grid-template-columns:1.1fr 1fr 0.9fr;}
+@media(max-width:900px){.split,.split-3{grid-template-columns:1fr;}}
+.formula-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;}
+.formula-card{padding:14px;border-radius:14px;background:#f5f3ff;border:1.5px solid #ddd6fe;}
+.formula-card h4{font-size:12px;color:#534AB7;margin-bottom:6px;}
+.formula-card code{font-size:14px;font-weight:700;color:#1a1a2e;font-family:'Courier New',monospace;}
+.formula-card p{font-size:11px;color:#6b7280;margin-top:4px;}
+.arr-bar{width:100%;}
+.arr-lbl{font-size:10px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.arr-cells{display:flex;flex-wrap:wrap;gap:6px;}
+.arr-cell{display:flex;flex-direction:column;align-items:center;padding:6px 10px;border-radius:10px;background:#f1f5f9;border:2px solid #e2e8f0;min-width:44px;}
+.arr-cell.hi{background:#ddd6fe;border-color:#534AB7;}
+.ac-val{font-size:15px;font-weight:800;font-family:'Courier New',monospace;}
+.ac-idx{font-size:9px;color:#9ca3af;}
+.heap-canvas{border-radius:14px;border:1.5px solid #e5e7eb;background:#fafbff;}
+.trace-msg{font-size:12px;color:#534AB7;font-weight:700;min-height:18px;text-align:center;}
+.gen-btn,.play-btn{padding:8px 16px;border-radius:10px;border:none;background:#534AB7;color:white;font-size:12px;font-weight:700;cursor:pointer;}
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;}
+.badge-ok{background:#dcfce7;color:#15803d;}
+.badge-bad{background:#fee2e2;color:#b91c1c;}
+.app-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;}
+@media(max-width:900px){.app-grid{grid-template-columns:1fr;}}
+.app-card{padding:14px;border-radius:14px;border:1.5px solid #e5e7eb;background:#f8fafc;cursor:pointer;}
+.app-card.open{border-color:#534AB7;background:#f5f3ff;}
+.app-card h4{font-size:13px;font-weight:800;color:#534AB7;margin-bottom:4px;}
+.app-card p{font-size:11px;color:#6b7280;line-height:1.5;}
+.app-body{max-height:0;overflow:hidden;transition:max-height .35s;}
+.app-card.open .app-body{max-height:120px;margin-top:8px;}
+.complexity-box{padding:16px;border-radius:14px;background:#f0fdf4;border:1.5px solid #86efac;width:100%;}
+.complexity-box h4{color:#15803d;font-size:14px;margin-bottom:6px;}
+.complexity-box p{font-size:12px;color:#374151;line-height:1.6;}
+.math{font-family:'Courier New',monospace;font-weight:700;color:#534AB7;}
+.lc-widget{background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;}
+.lc-prob{font-size:13px;font-weight:700;margin-bottom:8px;}
+.lc-hint{font-size:11px;color:#6b7280;line-height:1.5;}
+.s16-heaps-row{display:grid;grid-template-columns:1fr 100px 1fr;gap:8px;width:100%;align-items:start;}
+.s16-heap-col{padding:8px;border-radius:14px;border:2px solid transparent;transition:border-color .3s,background .3s;}
+.s16-heap-col.bigger-lo{border-color:#534AB7;background:#f5f3ff;}
+.s16-heap-col.bigger-hi{border-color:#1D9E75;background:#f0fdf4;}
+.s16-heap-col.move-from{border-color:#f97316;background:#fff7ed;}
+.s16-size-badge{font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;background:#eef2f7;color:#6b7280;margin-left:4px;}
+.s16-bridge{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding-top:28px;}
+.s16-median-rule{font-size:10px;font-weight:700;text-align:center;line-height:1.45;padding:8px;border-radius:10px;min-height:48px;color:#534AB7;background:#f5f3ff;border:1.5px solid #ddd6fe;}
+.s16-median-rule.mode-avg{color:#b45309;background:#fffbeb;border-color:#fde68a;}
+.s16-median-rule.mode-hi{color:#15803d;background:#f0fdf4;border-color:#86efac;}
+.arr-cell.med-root{background:#fef9c3;border-color:#eab308;}
+.arr-cell.move-root{background:#ffedd5;border-color:#f97316;}
+.pane{display:none;width:100%;}
+.pane.active{display:block;}
+
+.use-card{background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 14px;}
+.use-card h4{font-size:12px;font-weight:800;color:#534AB7;margin-bottom:4px;}
+.use-card p{font-size:11.5px;color:#6b7280;line-height:1.5;}
+
+.cmp-table{width:100%;border-collapse:collapse;font-size:12px;}
+.cmp-table th,.cmp-table td{padding:8px 12px;border:1px solid #e5e7eb;text-align:left;}
+.cmp-table th{background:#f5f3ff;color:#534AB7;font-weight:800;}
+.cmp-table td.hl-cell{background:#ecfdf5;font-weight:700;}
+
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;}
+.tab-btn{padding:8px 16px;border-radius:14px;border:2px solid #e5e7eb;background:#f8fafc;font-size:12px;font-weight:700;color:#6b7280;cursor:pointer;transition:all .2s;}
+.tab-btn:hover{border-color:#c7d2fe;}
+.tab-btn.active{background:#534AB7;border-color:#534AB7;color:white;box-shadow:0 6px 16px rgba(83,74,183,.3);}
+
+.out-box{background:#0f172a;border-radius:10px;padding:10px 14px;font-family:'Courier New',Consolas,monospace;font-size:11px;color:#86efac;line-height:1.6;}
+.out-box .prompt{display:block;color:#9ca3af;margin-bottom:4px;}
+.out-box .out-line{display:block;white-space:pre;}
+.out-box .reveal-target{display:block;}
+.locked .out-box .reveal-target .out-line{color:transparent;}
+.out-box .err{color:#fca5a5;}
+
+.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
+.tag{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.5px;}
+.tag-pub{background:#dbeafe;color:#1d4ed8;}
+.tag-prv{background:#fee2e2;color:#b91c1c;}
+.tag-ok{background:#dcfce7;color:#15803d;}
+.tag-bad{background:#fee2e2;color:#b91c1c;}
+
+.op-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;}
+@media(max-width:800px){.op-grid{grid-template-columns:1fr;}}
+.op-cat{background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px;}
+.op-cat h4{font-size:11px;font-weight:800;color:#534AB7;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;}
+.op-item{font-size:11px;padding:4px 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;gap:8px;}
+.op-item:last-child{border-bottom:none;}
+.op-item .sym{font-family:'Courier New',monospace;font-weight:800;color:#1a1a2e;}
+.op-item.yes .status{color:#15803d;font-weight:700;}
+.op-item.no .status{color:#b91c1c;font-weight:700;}
+
+.fin-note{font-size:12px;color:#6b7280;line-height:1.55;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid #e5e7eb;}
+.s17-steps{display:flex;flex-direction:column;gap:5px;min-width:0;}
+.s17-step-btn{width:100%;text-align:left;padding:8px 11px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;
+  font-size:10.5px;font-weight:600;color:#374151;cursor:pointer;font-family:inherit;transition:all .2s;line-height:1.45;
+  display:flex;flex-direction:column;align-items:flex-start;gap:2px;}
+.s17-step-num{font-weight:700;font-size:11px;}
+.s17-step-hint{display:none;font-size:10px;font-weight:500;color:#6b7280;line-height:1.4;}
+.s17-step-hint code{font-size:9.5px;}
+.s17-step-btn.done .s17-step-hint{display:block;}
+.s17-step-btn.done .s17-step-num{color:#15803d;}
+.s17-step-btn:hover:not(:disabled){border-color:#534AB7;background:#f5f3ff;color:#534AB7;}
+.s17-step-btn.active-next{border-color:#534AB7;box-shadow:0 0 0 2px rgba(83,74,183,.12);}
+.s17-step-btn.done,.s17-step-btn.correct{background:#ecfdf5;border-color:#1D9E75;color:#15803d;}
+.s17-step-btn.wrong{border-color:#ef4444;background:#fff5f5;color:#b91c1c;animation:shake .35s;}
+.s17-step-btn:disabled:not(.done):not(.correct){opacity:.55;cursor:default;}
+#s17-op.locked .reveal-target{color:#9ca3af;background:none;}
+#s17-op.locked .reveal-target::after{content:none;}
+#s19-sig.locked .reveal-target{color:#9ca3af;background:none;}
+#s19-sig.locked .reveal-target::after{content:none;}
+.s1-name{font-size:11px;color:#9ca3af;text-align:center;margin-top:8px;}
+
+.title-hero{text-align:center;animation:up .8s ease both;}
+.title-hero h1{font-size:36px;font-weight:800;color:#1a1a2e;line-height:1.2;}
+.title-hero h1 span{color:#534AB7;}
+.title-hero .unit{font-size:14px;color:#6b7280;margin-top:10px;letter-spacing:2px;text-transform:uppercase;}
+.title-pills{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;}
+.title-pill{padding:8px 16px;border-radius:20px;background:#f5f3ff;border:1.5px solid #ddd6fe;font-size:12px;font-weight:700;color:#534AB7;}
+</style>
+</head>
+<body>
+<canvas id="draw-canvas"></canvas>
+<div id="draw-cursor"></div>
+
+<div id="toolbar">
+  <div class="tb active" id="btn-pointer" onclick="setMode('pointer')">👆</div>
+  <div class="tb" id="btn-pen" onclick="setMode('pen')">✏️</div>
+  <div class="tb" id="btn-eraser" onclick="setMode('eraser')">🧹</div>
+  <div class="tb" onclick="clearAll()">🗑️</div>
+  <div class="tdiv"></div>
+  <div class="cb active" id="col-r" style="background:#ef4444" onclick="setColor('#ef4444','col-r')"></div>
+  <div class="cb" id="col-b" style="background:#3b82f6" onclick="setColor('#3b82f6','col-b')"></div>
+  <div class="cb" id="col-g" style="background:#22c55e" onclick="setColor('#22c55e','col-g')"></div>
+  <div class="cb" id="col-y" style="background:#f59e0b" onclick="setColor('#f59e0b','col-y')"></div>
+  <div class="cb" id="col-w" style="background:#fff;border-color:rgba(255,255,255,0.4)" onclick="setColor('#ffffff','col-w')"></div>
+  <div class="tdiv"></div>
+  <div class="sb active" id="sz-s" style="width:9px;height:9px;" onclick="setSize(3,'sz-s')"></div>
+  <div class="sb" id="sz-m" style="width:14px;height:14px;" onclick="setSize(6,'sz-m')"></div>
+  <div class="sb" id="sz-l" style="width:20px;height:20px;" onclick="setSize(13,'sz-l')"></div>
+</div>
+
+<div class="nav">
+  <button class="nbtn pb" onclick="prevSlide()">←</button>
+  <button class="nbtn nb" onclick="nextStep()">→</button>
+</div>
+<div class="info-bar" id="info-bar">Press → to advance · grid icon jumps to any slide</div>
+<div class="zoom-bar" id="zoom-bar" title="Slide zoom">
+  <button type="button" class="zoom-btn active" data-zoom-mode="page" onclick="event.stopPropagation();setZoomMode('page')" title="Fit to page" aria-label="Fit to page">⊡</button>
+  <button type="button" class="zoom-btn" data-zoom-mode="width" onclick="event.stopPropagation();setZoomMode('width')" title="Fit to width" aria-label="Fit to width">↔</button>
+  <button type="button" class="zoom-btn" data-zoom-mode="height" onclick="event.stopPropagation();setZoomMode('height')" title="Fit to height" aria-label="Fit to height">↕</button>
+  <input type="range" class="zoom-slider" id="zoom-slider" min="50" max="200" value="100" aria-label="Zoom level" oninput="setZoomManual(this.value)" onclick="event.stopPropagation()"/>
+  <span class="zoom-pct" id="zoom-pct">100%</span>
+</div>
+<div class="top-chrome">
+  <div class="counter" id="counter">Slide 1 / 14</div>
+  <button class="jump-toggle" id="jump-toggle" onclick="event.stopPropagation();toggleJumpPanel()" title="Jump to slide" aria-label="Jump to slide">
+    <span class="grid-icon"><span></span><span></span><span></span><span></span></span>
+  </button>
+</div>
+<div class="jump-panel" id="jump-panel">
+  <div class="jump-grid" id="jump-grid"></div>
+</div>
+<!-- SLIDE 1 — TITLE -->
+<div class="slide active" id="s1">
+  <div class="cpp-wrap" style="justify-content:center;">
+    <div class="fade-in" style="text-align:center;">
+      <div style="font-size:42px;font-weight:800;color:#1a1a2e;margin-bottom:10px;">Heap <span style="color:#534AB7;">Data Structure</span></div>
+      <div style="font-size:16px;color:#6b7280;margin-bottom:18px;">Max-Heap in C++ — from array to heap sort</div>
+      <div style="font-size:14px;color:#534AB7;font-weight:700;margin-bottom:6px;">CS2308</div>
+      <div style="font-size:13px;color:#6b7280;margin-bottom:24px;">Presented by <strong style="color:#1a1a2e;">Keshav</strong></div>
+      <div style="font-size:12px;color:#9ca3af;">Press → to begin · Arrow keys navigate · Pen toolbar on the left</div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 2 — INTRO -->
+<div class="slide" id="s2">
+  <div class="cpp-wrap">
+    <div class="sl-title">What is a <span>Heap</span>?</div>
+    <div class="panel" id="s2-p1">
+      <p class="sl-sub" style="margin:0 auto;">A <strong>complete binary tree</strong> stored in an array, satisfying the <strong>heap property</strong>: every parent ≥ both children (max-heap).</p>
+    </div>
+    <div class="panel" id="s2-p2">
+      <div class="formula-grid">
+        <div class="formula-card"><h4>Priority Queues</h4><p>OS schedulers, Dijkstra, task managers — always extract the highest priority item in O(log n).</p></div>
+        <div class="formula-card"><h4>Heap Sort</h4><p>In-place O(n log n) sorting without extra memory for merges.</p></div>
+        <div class="formula-card"><h4>Top-K Problems</h4><p>Find k largest/smallest in streaming data — LeetCode favorites.</p></div>
+        <div class="formula-card"><h4>Median / Sliding Window</h4><p>Two heaps maintain running median in O(log n) per update.</p></div>
+      </div>
+    </div>
+    <div class="panel" id="s2-p3">
+      <p class="sl-sub" style="margin:0 auto;">Why popular? <strong>Simple array backing</strong>, <strong>cache-friendly</strong>, and <strong>O(log n)</strong> insert/delete — no pointers needed.</p>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 3 — REPRESENTATION -->
+<div class="slide" id="s3">
+  <div class="cpp-wrap">
+    <div class="sl-title">Array ↔ <span>Tree</span> Representation</div>
+    <div class="split">
+      <div>
+        <div class="panel show" id="s3-arr">
+          <div id="s3-array-bar" class="arr-bar"></div>
+        </div>
+        <div class="panel" id="s3-formulas">
+          <div class="formula-grid">
+            <div class="formula-card"><h4>Left child</h4><code>2·i + 1</code></div>
+            <div class="formula-card"><h4>Right child</h4><code>2·i + 2</code></div>
+            <div class="formula-card"><h4>Parent of i</h4><code>(i − 1) / 2</code></div>
+            <div class="formula-card"><h4>Last parent</h4><code>(n − 2) / 2</code></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel show" id="s3-tree-panel">
+        <canvas id="s3-canvas" class="heap-canvas" width="480" height="320"></canvas>
+      </div>
+    </div>
+    <div class="panel" id="s3-demo">
+      <p class="sl-sub" style="margin:0;">Hover any array cell to highlight its node and children. <span id="s3-hint" class="math"></span></p>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 4 — EXAMPLES -->
+<div class="slide" id="s4">
+  <div class="cpp-wrap">
+    <div class="sl-title">Valid & <span>Invalid</span> Heaps</div>
+    <button class="gen-btn" onclick="regenExamples()">🎲 Generate New Examples</button>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="setExTab('valid',this)">✓ Valid Max-Heaps</button>
+      <button class="tab-btn" onclick="setExTab('invalid',this)">✗ Violations</button>
+    </div>
+    <div class="pane active" id="pane-valid">
+      <div class="split" id="s4-valid-grid"></div>
+    </div>
+    <div class="pane" id="pane-invalid">
+      <div class="split" id="s4-invalid-grid"></div>
+    </div>
+    <div class="panel" id="s4-note">
+      <p class="sl-sub" style="margin:0;">A max-heap requires <strong>every parent ≥ its children</strong>. One violation anywhere breaks the property.</p>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 5 — INSERT -->
+<div class="slide" id="s5">
+  <div class="cpp-wrap">
+    <div class="sl-title">Heap <span>Insert</span> — Code Trace</div>
+    <div class="trace-msg" id="s5-msg">Inserting value into existing heap…</div>
+    <div class="split split-3">
+      <div class="code-block" id="s5-insert">
+<span class="code-line" data-line="1"><span class="kw">void</span> <span class="ty">heapInsert</span>(<span class="ty">vector</span>&lt;<span class="kw">int</span>&gt;&amp; h, <span class="kw">int</span> val) {</span>
+<span class="code-line" data-line="2">    h.push_back(val);</span>
+<span class="code-line" data-line="3">    <span class="kw">int</span> i = h.size() - <span class="num">1</span>;</span>
+<span class="code-line" data-line="4">    <span class="kw">while</span> (i &gt; <span class="num">0</span>) {</span>
+<span class="code-line" data-line="5">        <span class="kw">int</span> p = (i - <span class="num">1</span>) / <span class="num">2</span>;</span>
+<span class="code-line" data-line="6">        <span class="kw">if</span> (h[p] &gt;= h[i]) <span class="kw">break</span>;</span>
+<span class="code-line" data-line="7">        swap(h[p], h[i]);</span>
+<span class="code-line" data-line="8">        i = p;</span>
+<span class="code-line" data-line="9">    }</span>
+<span class="code-line" data-line="10">}</span>
+      </div>
+      <div>
+        <canvas id="s5-canvas" class="heap-canvas" width="360" height="280"></canvas>
+        <div id="s5-arr" class="arr-bar" style="margin-top:10px;"></div>
+      </div>
+      <div class="panel show" style="opacity:1;transform:none;">
+        <p style="font-size:11px;color:#6b7280;line-height:1.6;">Starting heap: <span id="s5-start" class="math"></span><br>Insert: <span id="s5-val" class="math"></span></p>
+        <p style="font-size:10px;color:#9ca3af;margin-top:8px;">Use code toolbar: edit · line # · theme</p>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 6 — INSERT COMPLEXITY -->
+<div class="slide" id="s6">
+  <div class="cpp-wrap">
+    <div class="sl-title">Insert Complexity — <span>O(log n)</span></div>
+    <div class="split">
+      <div>
+        <canvas id="s6-canvas" class="heap-canvas" width="400" height="340"></canvas>
+        <div id="s6-arr" class="arr-bar" style="margin-top:8px;"></div>
+      </div>
+      <div>
+        <canvas id="s6-ladder" class="heap-canvas" width="280" height="340"></canvas>
+        <div class="panel" id="s6-step-info" style="margin-top:8px;opacity:1;transform:none;">
+          <p id="s6-text" style="font-size:12px;color:#374151;line-height:1.6;"></p>
+        </div>
+      </div>
+    </div>
+    <div class="panel" id="s6-quiz">
+      <div class="quiz-box" id="s6-quiz-box">
+        <div class="quiz-q">Worst-case insert: how many levels can the new value climb?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s6-quiz-box',0,null,null,this)">O(log n) — tree height</button>
+          <button class="quiz-btn" onclick="checkQuiz('s6-quiz-box',0,null,null,this)">O(n) — scan all nodes</button>
+          <button class="quiz-btn" onclick="checkQuiz('s6-quiz-box',0,null,null,this)">O(1) — always one swap</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+    </div>
+    <div class="panel" id="s6-conclude">
+      <div class="complexity-box">
+        <h4>Height = ⌊log₂ n⌋</h4>
+        <p>Each insert bubbles up <strong>at most one level per swap</strong>. Worst case: new leaf at bottom climbs to root → <span class="math">O(log n)</span> comparisons & swaps.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 7 — HEAPIFY -->
+<div class="slide" id="s7">
+  <div class="cpp-wrap">
+    <div class="sl-title">Build Heap via <span>Repeated Insert</span></div>
+    <div class="trace-msg" id="s7-msg">Starting from empty heap…</div>
+    <div class="split">
+      <div>
+        <div class="arr-lbl">Source array (read left → right)</div>
+        <div id="s7-src" class="arr-bar"></div>
+        <canvas id="s7-canvas" class="heap-canvas" width="420" height="300" style="margin-top:10px;"></canvas>
+      </div>
+      <div>
+        <div class="code-block" id="s7-insert">
+<span class="code-line" data-line="1"><span class="kw">void</span> <span class="ty">heapInsert</span>(<span class="ty">vector</span>&lt;<span class="kw">int</span>&gt;&amp; h, <span class="kw">int</span> val) {</span>
+<span class="code-line" data-line="2">    h.push_back(val);</span>
+<span class="code-line" data-line="3">    <span class="kw">int</span> i = h.size() - <span class="num">1</span>;</span>
+<span class="code-line" data-line="4">    <span class="kw">while</span> (i &gt; <span class="num">0</span>) {</span>
+<span class="code-line" data-line="5">        <span class="kw">int</span> p = (i - <span class="num">1</span>) / <span class="num">2</span>;</span>
+<span class="code-line" data-line="6">        <span class="kw">if</span> (h[p] &gt;= h[i]) <span class="kw">break</span>;</span>
+<span class="code-line" data-line="7">        swap(h[p], h[i]);</span>
+<span class="code-line" data-line="8">        i = p;</span>
+<span class="code-line" data-line="9">    }</span>
+<span class="code-line" data-line="10">}</span>
+        </div>
+        <div id="s7-heap-arr" class="arr-bar" style="margin-top:10px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 8 — HEAPIFY COMPLEXITY -->
+<div class="slide" id="s8">
+  <div class="cpp-wrap">
+    <div class="sl-title">Build-Heap Complexity — <span>O(n log n)</span></div>
+    <div class="panel" id="s8-p1">
+      <p class="sl-sub" style="margin:0;">Insert n elements one-by-one: each costs O(log k) where k grows from 1 to n.</p>
+    </div>
+    <div class="panel" id="s8-p2">
+      <div class="complexity-box" style="background:#f5f3ff;border-color:#ddd6fe;">
+        <h4 style="color:#534AB7;">Sum of heights</h4>
+        <p>Total work ≈ Σ log₂(i) for i = 1…n = <span class="math">O(n log n)</span></p>
+        <p style="margin-top:8px;">Insert #1 → log 1 step &nbsp;·&nbsp; Insert #2 → ≤ 1 step &nbsp;·&nbsp; … &nbsp;·&nbsp; Insert #n → ≤ ⌊log₂ n⌋ steps</p>
+      </div>
+    </div>
+    <div class="panel" id="s8-quiz">
+      <div class="quiz-box" id="s8-quiz-box">
+        <div class="quiz-q">Can we build a max-heap from an array faster than n successive inserts?</div>
+        <div class="quiz-opts">
+          <button class="quiz-btn" onclick="checkQuiz('s8-quiz-box',0,'s8-on-note',null,this)">Yes — bottom-up heapify in O(n)</button>
+          <button class="quiz-btn" onclick="checkQuiz('s8-quiz-box',0,'s8-on-note',null,this)">No — must be O(n log n)</button>
+          <button class="quiz-btn" onclick="checkQuiz('s8-quiz-box',0,'s8-on-note',null,this)">Only with a balanced BST</button>
+        </div>
+        <div class="quiz-fb"></div>
+      </div>
+    </div>
+    <div class="panel" id="s8-on-note">
+      <div class="complexity-box" style="background:#eff6ff;border-color:#93c5fd;">
+        <h4 style="color:#1d4ed8;">O(n) bottom-up heapify</h4>
+        <p class="reveal-target">Sift-down from <span class="math">lastParent(n)</span> to root — tighter than n inserts. Floyd's algorithm builds the heap in linear time.</p>
+      </div>
+    </div>
+    <div class="panel" id="s8-p3">
+      <div class="complexity-box">
+        <h4>Fact chain</h4>
+        <p>① Single insert = <span class="math">O(log n)</span> &nbsp;→&nbsp; ② n inserts = <span class="math">n × O(log n) = O(n log n)</span></p>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 9 — FLOYD HEAPIFY -->
+<div class="slide" id="s9">
+  <div class="cpp-wrap">
+    <div class="sl-title">Floyd's <span>Bottom-Up Heapify</span> — O(n)</div>
+    <button class="gen-btn" onclick="regenFloyd()">🎲 New 15-Element Array</button>
+    <div class="trace-msg" id="s9-msg">Press → to step through sift-down from last parent to root</div>
+    <div class="split">
+      <div>
+        <canvas id="s9-canvas" class="heap-canvas" width="520" height="380"></canvas>
+        <div id="s9-arr" class="arr-bar" style="margin-top:10px;"></div>
+        <p style="font-size:11px;color:#6b7280;margin-top:6px;text-align:center;">n = <span id="s9-n" class="math">15</span> &nbsp;·&nbsp; last parent = <span id="s9-lp" class="math">6</span> &nbsp;·&nbsp; current i = <span id="s9-cur" class="math">—</span></p>
+      </div>
+      <div>
+        <div class="code-block" id="s9-floyd">
+<span class="code-line" data-line="1"><span class="kw">void</span> <span class="ty">heapify</span>(<span class="ty">vector</span>&lt;<span class="kw">int</span>&gt;&amp; a) {</span>
+<span class="code-line" data-line="2">    <span class="kw">int</span> n = a.size();</span>
+<span class="code-line" data-line="3">    <span class="kw">for</span> (<span class="kw">int</span> i = (n - <span class="num">2</span>) / <span class="num">2</span>; i &gt;= <span class="num">0</span>; i--)</span>
+<span class="code-line" data-line="4">        siftDown(a, i);</span>
+<span class="code-line" data-line="5">}</span>
+<span class="code-line" data-line="6"></span>
+<span class="code-line" data-line="7"><span class="kw">void</span> <span class="ty">siftDown</span>(<span class="ty">vector</span>&lt;<span class="kw">int</span>&gt;&amp; a, <span class="kw">int</span> i) {</span>
+<span class="code-line" data-line="8">    <span class="kw">int</span> n = a.size();</span>
+<span class="code-line" data-line="9">    <span class="kw">while</span> (<span class="kw">true</span>) {</span>
+<span class="code-line" data-line="10">        <span class="kw">int</span> l = <span class="num">2</span>*i+<span class="num">1</span>, r = <span class="num">2</span>*i+<span class="num">2</span>, big = i;</span>
+<span class="code-line" data-line="11">        <span class="kw">if</span> (l &lt; n &amp;&amp; a[l] &gt; a[big]) big = l;</span>
+<span class="code-line" data-line="12">        <span class="kw">if</span> (r &lt; n &amp;&amp; a[r] &gt; a[big]) big = r;</span>
+<span class="code-line" data-line="13">        <span class="kw">if</span> (big == i) <span class="kw">break</span>;</span>
+<span class="code-line" data-line="14">        swap(a[i], a[big]); i = big;</span>
+<span class="code-line" data-line="15">    }</span>
+<span class="code-line" data-line="16">}</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel" id="s9-done">
+      <div class="complexity-box">
+        <h4>O(n) total — not O(n log n)</h4>
+        <p>Most nodes are near the bottom and sift only a short distance. Summing work over all levels gives linear time.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 10 — POP -->
+<div class="slide" id="s10">
+  <div class="cpp-wrap">
+    <div class="sl-title">Heap <span>Pop</span> (Extract-Max)</div>
+    <div class="trace-msg" id="s10-msg">Removing the maximum element…</div>
+    <div class="split split-3">
+      <div class="code-block" id="s10-pop">
+<span class="code-line" data-line="1"><span class="kw">int</span> <span class="ty">heapPop</span>(<span class="ty">vector</span>&lt;<span class="kw">int</span>&gt;&amp; h) {</span>
+<span class="code-line" data-line="2">    <span class="kw">int</span> top = h[<span class="num">0</span>];</span>
+<span class="code-line" data-line="3">    h[<span class="num">0</span>] = h.back(); h.pop_back();</span>
+<span class="code-line" data-line="4">    <span class="kw">int</span> i = <span class="num">0</span>;</span>
+<span class="code-line" data-line="5">    <span class="kw">while</span> (<span class="kw">true</span>) {</span>
+<span class="code-line" data-line="6">        <span class="kw">int</span> l = <span class="num">2</span>*i+<span class="num">1</span>, r = <span class="num">2</span>*i+<span class="num">2</span>, big = i;</span>
+<span class="code-line" data-line="7">        <span class="kw">if</span> (l &lt; h.size() &amp;&amp; h[l] &gt; h[big]) big = l;</span>
+<span class="code-line" data-line="8">        <span class="kw">if</span> (r &lt; h.size() &amp;&amp; h[r] &gt; h[big]) big = r;</span>
+<span class="code-line" data-line="9">        <span class="kw">if</span> (big == i) <span class="kw">break</span>;</span>
+<span class="code-line" data-line="10">        swap(h[i], h[big]); i = big;</span>
+<span class="code-line" data-line="11">    }</span>
+<span class="code-line" data-line="12">    <span class="kw">return</span> top;</span>
+<span class="code-line" data-line="13">}</span>
+      </div>
+      <div>
+        <canvas id="s10-canvas" class="heap-canvas" width="360" height="280"></canvas>
+        <div id="s10-arr" class="arr-bar" style="margin-top:10px;"></div>
+      </div>
+      <div class="panel show" style="opacity:1;transform:none;">
+        <p style="font-size:12px;line-height:1.7;">Popped value: <span id="s10-popped" class="math">—</span></p>
+        <p style="font-size:11px;color:#6b7280;margin-top:8px;">Replace root with last element, then sift down — also <span class="math">O(log n)</span>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 11 — HEAP SORT -->
+<div class="slide" id="s11">
+  <div class="cpp-wrap">
+    <div class="sl-title">Heap Sort — <span>Pop Until Empty</span></div>
+    <button class="gen-btn" onclick="regenHeapSort()">🎲 New Random Array</button>
+    <div class="trace-msg" id="s11-msg">Press → to step through each pop</div>
+    <canvas id="s11-canvas" class="heap-canvas" width="700" height="360" style="width:100%;max-width:700px;"></canvas>
+    <div class="split">
+      <div id="s11-heap-arr" class="arr-bar"></div>
+      <div id="s11-out-arr" class="arr-bar"></div>
+    </div>
+    <div class="panel" id="s11-reveal">
+      <p class="sl-sub" style="margin:0;">Repeatedly popping the max yields elements in <strong>descending</strong> order — reverse for ascending sort!</p>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 11 — HEAP SORT COMPLEXITY -->
+<div class="slide" id="s12">
+  <div class="cpp-wrap">
+    <div class="sl-title">Heap Sort <span>Complexity</span></div>
+    <div class="panel" id="s12-p1">
+      <div class="complexity-box">
+        <h4>Time: O(n log n)</h4>
+        <p>Build heap: O(n log n) via inserts &nbsp;+&nbsp; n pops × O(log n) each = <span class="math">O(n log n)</span></p>
+      </div>
+    </div>
+    <div class="panel" id="s12-p2">
+      <div class="complexity-box" style="background:#eff6ff;border-color:#93c5fd;">
+        <h4 style="color:#1d4ed8;">Space: O(1) in-place</h4>
+        <p>Sorts within the array (aside from O(n) output if collecting pops separately). No merge buffer needed.</p>
+      </div>
+    </div>
+    <div class="panel" id="s12-p3">
+      <div class="formula-grid">
+        <div class="formula-card"><h4>Stable?</h4><p>No — equal elements may reorder.</p></div>
+        <div class="formula-card"><h4>vs Quick Sort</h4><p>Heap sort guarantees O(n log n) worst case; quicksort can degrade to O(n²).</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 12 — APPLICATIONS -->
+<div class="slide" id="s13">
+  <div class="cpp-wrap">
+    <div class="sl-title">Real-World <span>Applications</span></div>
+    <div class="app-grid">
+      <div class="app-card" id="app-pq" onclick="toggleApp('app-pq')">
+        <h4>⚡ Priority Queues</h4>
+        <p>Linux CFS scheduler, hospital triage, game AI pathfinding.</p>
+        <div class="app-body"><p style="font-size:11px;color:#475569;">std::priority_queue in C++ wraps a binary heap — push/pop in O(log n).</p></div>
+      </div>
+      <div class="app-card" id="app-dij" onclick="toggleApp('app-dij')">
+        <h4>🗺️ Dijkstra / A*</h4>
+        <p>Shortest path extracts minimum-distance node repeatedly.</p>
+        <div class="app-body"><p style="font-size:11px;color:#475569;">Min-heap stores (distance, node) pairs — O((V+E) log V) with binary heap.</p></div>
+      </div>
+      <div class="app-card" id="app-topk" onclick="toggleApp('app-topk')">
+        <h4>📊 Top-K Streaming</h4>
+        <p>Log analysis, recommendation engines, leaderboards.</p>
+        <div class="app-body"><p style="font-size:11px;color:#475569;">Maintain size-k heap while scanning billions of events in O(n log k).</p></div>
+      </div>
+      <div class="app-card" id="app-med" onclick="toggleApp('app-med')">
+        <h4>📈 Running Median</h4>
+        <p>Finance, sensor networks, live dashboards.</p>
+        <div class="app-body"><p style="font-size:11px;color:#475569;">Max-heap (lower half) + min-heap (upper half) → median in O(log n).</p></div>
+      </div>
+      <div class="app-card" id="app-huff" onclick="toggleApp('app-huff')">
+        <h4>🗜️ Huffman Coding</h4>
+        <p>JPEG, MP3, ZIP compression trees.</p>
+        <div class="app-body"><p style="font-size:11px;color:#475569;">Repeatedly merge two smallest frequencies using a min-heap.</p></div>
+      </div>
+      <div class="app-card" id="app-os" onclick="toggleApp('app-os')">
+        <h4>🖥️ OS & Databases</h4>
+        <p>Memory management, event timers, merge joins.</p>
+        <div class="app-body"><p style="font-size:11px;color:#475569;">Timer wheels and heap-based schedulers wake the nearest deadline first.</p></div>
+      </div>
+    </div>
+    <div class="panel" id="s13-why">
+      <p class="sl-sub" style="margin:0;">Heaps win because they're <strong>simple</strong>, <strong>cache-friendly</strong> (array-backed), and give predictable <strong>O(log n)</strong> performance without complex balancing like red-black trees.</p>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 14 — LEETCODE -->
+<div class="slide" id="s14">
+  <div class="cpp-wrap">
+    <div class="sl-title">LeetCode <span>Discussion</span></div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="setLcTab('kth',this)">#215 Kth Largest</button>
+      <button class="tab-btn" onclick="setLcTab('merge',this)">#23 Merge K Lists</button>
+    </div>
+    <div class="lc-widget pane active" id="pane-kth">
+      <div class="lc-prob">Find the k<sup>th</sup> largest element in an unsorted array.</div>
+      <div class="split">
+        <div id="lc-kth-arr" class="arr-bar"></div>
+        <div>
+          <label style="font-size:11px;color:#6b7280;">k = <span id="lc-k-val">3</span></label>
+          <input type="range" id="lc-k-slider" min="1" max="8" value="3" oninput="updateKth()"/>
+          <p id="lc-kth-ans" style="font-size:14px;font-weight:800;color:#534AB7;margin-top:8px;"></p>
+        </div>
+      </div>
+      <p class="lc-hint">Min-heap of size k vs quickselect — when is the heap better for streaming data?</p>
+    </div>
+    <div class="lc-widget pane" id="pane-merge">
+      <div class="lc-prob" style="margin-bottom:12px;">#23 Merge K Sorted Lists</div>
+      <p style="font-size:12px;color:#6b7280;line-height:1.6;margin-bottom:12px;">Given <strong>k</strong> sorted linked lists, merge into one sorted list. Use a <strong>min-heap</strong> of size k holding the current head of each list.</p>
+      <canvas id="lc-merge-canvas" class="heap-canvas" width="640" height="220"></canvas>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap;">
+        <p id="lc-merge-status" style="font-size:12px;font-weight:700;color:#534AB7;flex:1;min-width:200px;"></p>
+        <div id="lc-merge-out" class="arr-bar" style="flex:1;min-width:180px;"></div>
+      </div>
+      <p class="lc-hint" style="margin-top:10px;">Press → to step · Complexity: <span class="math">O(N log k)</span> — each of N elements does one heap push/pop.</p>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 15 — STREAMING MEDIAN (discussion) -->
+<div class="slide" id="s15">
+  <div class="cpp-wrap">
+    <div class="sl-title">LeetCode #295 — <span>Find Median from Data Stream</span></div>
+    <p class="sl-sub" style="margin:0 auto 12px;">Numbers arrive one at a time. After each <code>addNum</code>, answer <code>findMedian</code> — without sorting the full stream every time.</p>
+    <div class="lc-widget">
+      <div id="s15-stream" class="arr-bar"></div>
+      <div style="display:flex;gap:10px;justify-content:center;align-items:center;margin:12px 0;flex-wrap:wrap;">
+        <button class="gen-btn" onclick="s15AddNum()">+ Add number</button>
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#6b7280;">
+          <label>Auto × <span id="s15-auto-val" class="math">5</span></label>
+          <input type="range" id="s15-auto-count" min="5" max="10" value="5" style="width:90px;" oninput="s15UpdateAutoLabel()"/>
+        </div>
+        <button class="play-btn" onclick="s15AutoStream()" style="background:#1D9E75;">▶ Auto stream</button>
+        <button class="gen-btn" onclick="resetS15Stream()" style="background:#6b7280;">Reset</button>
+      </div>
+      <p id="s15-median" style="text-align:center;font-size:18px;font-weight:800;color:#534AB7;min-height:28px;"></p>
+    </div>
+    <div class="panel" id="s15-p1">
+      <div class="formula-card" style="background:#f8fafc;border-color:#e5e7eb;">
+        <h4>Why not sort each time?</h4>
+        <p>Sorting n elements on every insert costs <span class="math">O(n log n)</span> per update — too slow for live dashboards, finance ticks, or sensor feeds.</p>
+      </div>
+    </div>
+    <div class="panel" id="s15-p2">
+      <div class="formula-card" style="background:#f5f3ff;border-color:#ddd6fe;">
+        <h4>Key question for the audience</h4>
+        <p>How do we track the <strong>middle</strong> of a growing stream in <span class="math">O(log n)</span> per insert?</p>
+      </div>
+    </div>
+    <div class="panel" id="s15-p3">
+      <p class="lc-hint" style="margin:0;text-align:center;">💬 Hint to discuss: split the stream into a lower and upper half — press → for the two-heap solution.</p>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 16 — TWO-HEAP MEDIAN -->
+<div class="slide" id="s16">
+  <div class="cpp-wrap">
+    <div class="sl-title">Two-Heap <span>Median</span> — Interactive</div>
+    <p class="sl-sub" style="margin:0 auto 10px;">Max-heap holds the lower half · min-heap holds the upper half · sizes differ by at most 1</p>
+    <div class="trace-msg" id="s16-msg">Press → to step, or add numbers manually</div>
+    <div class="s16-heaps-row">
+      <div class="s16-heap-col" id="s16-lo-col">
+        <div class="arr-lbl" style="color:#534AB7;">Lower half — max-heap <span id="s16-lo-size" class="s16-size-badge"></span></div>
+        <canvas id="s16-lo-canvas" class="heap-canvas" width="280" height="200"></canvas>
+        <div id="s16-lo-arr" class="arr-bar" style="margin-top:6px;"></div>
+      </div>
+      <div class="s16-bridge">
+        <canvas id="s16-arrow-canvas" width="100" height="200"></canvas>
+        <div id="s16-median-rule" class="s16-median-rule"></div>
+      </div>
+      <div class="s16-heap-col" id="s16-hi-col">
+        <div class="arr-lbl" style="color:#1D9E75;">Upper half — min-heap <span id="s16-hi-size" class="s16-size-badge"></span></div>
+        <canvas id="s16-hi-canvas" class="heap-canvas" width="280" height="200"></canvas>
+        <div id="s16-hi-arr" class="arr-bar" style="margin-top:6px;"></div>
+      </div>
+    </div>
+    <div style="text-align:center;margin:10px 0;">
+      <p style="font-size:13px;color:#6b7280;">Stream: <span id="s16-stream-lbl" class="math">—</span></p>
+      <p id="s16-median" style="font-size:20px;font-weight:800;color:#534AB7;margin-top:6px;">Median: —</p>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;">
+      <button class="gen-btn" onclick="s16AddNext()">+ Next step</button>
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#6b7280;">
+        <label>Stream <span id="s16-auto-val" class="math">5</span> nums</label>
+        <input type="range" id="s16-auto-count" min="5" max="10" value="5" style="width:90px;" oninput="s16UpdateAutoLabel()"/>
+      </div>
+      <button class="play-btn" onclick="s16AutoStream()" style="background:#1D9E75;">▶ Auto stream</button>
+      <button class="gen-btn" onclick="resetS16Demo()" style="background:#6b7280;">Reset demo</button>
+    </div>
+    <div class="panel" id="s16-rule">
+      <div class="complexity-box" style="background:#f5f3ff;border-color:#ddd6fe;">
+        <h4 style="color:#534AB7;">Invariant</h4>
+        <p>Every value in max-heap ≤ every value in min-heap · |lo| − |hi| ∈ {0, 1} · median = top of larger heap, or average of both tops.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SLIDE 17 — CONCLUSION -->
+<div class="slide" id="s17">
+  <div class="cpp-wrap" style="justify-content:center;">
+    <div class="sl-title">Summary — <span>The Heap</span></div>
+    <div class="panel show" style="opacity:1;transform:none;max-width:720px;">
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+        <span class="fin-node" style="padding:10px 16px;border-radius:12px;border:2px solid #534AB7;font-weight:800;">Array</span>
+        <span style="color:#9ca3af;font-weight:800;">→</span>
+        <span class="fin-node" style="padding:10px 16px;border-radius:12px;border:2px solid #534AB7;font-weight:800;">Insert O(log n)</span>
+        <span style="color:#9ca3af;font-weight:800;">→</span>
+        <span class="fin-node" style="padding:10px 16px;border-radius:12px;border:2px solid #534AB7;font-weight:800;">Pop O(log n)</span>
+        <span style="color:#9ca3af;font-weight:800;">→</span>
+        <span class="fin-node" style="padding:10px 16px;border-radius:12px;border:2px solid #1D9E75;font-weight:800;">Heap Sort O(n log n)</span>
+      </div>
+      <p class="sl-sub" style="margin:0 auto;">Complete binary tree in an array · parent/child index formulas · traceable C++ insert & pop · foundation for priority queues, graph algorithms, and interview problems.</p>
+      <p style="text-align:center;margin-top:20px;font-size:12px;color:#9ca3af;">Thank you! Questions?</p>
+    </div>
+  </div>
+</div>
+<script>
+// ══════════════════════════════════
+// DRAWING ENGINE
+// ══════════════════════════════════
+var dc=document.getElementById('draw-canvas'),dctx=dc.getContext('2d');
+var drawCursor=document.getElementById('draw-cursor');
+var drawing=false,mode='off',penColor='#ef4444',penSize=3,lx=0,ly=0;
+function updateDrawCursorStyle(){
+  if(!drawCursor)return;
+  if(mode==='off'){drawCursor.classList.remove('show','eraser');return;}
+  drawCursor.classList.add('show');
+  drawCursor.classList.toggle('eraser',mode==='eraser');
+  if(mode==='pen'){
+    var size=Math.max(17,penSize*2.5+9);
+    drawCursor.style.width=size+'px';drawCursor.style.height=size+'px';
+    drawCursor.style.borderColor=penColor;drawCursor.style.background='rgba(255,255,255,.90)';
+  }else{drawCursor.style.borderColor='#0f172a';drawCursor.style.background='rgba(255,255,255,.94)';}
+}
+function resizeDC(){var img=dctx.getImageData(0,0,dc.width,dc.height);dc.width=window.innerWidth;dc.height=window.innerHeight;dctx.putImageData(img,0,0);}
+resizeDC();window.addEventListener('resize',resizeDC);updateDrawCursorStyle();
+function setMode(m){if(m==='pointer'){mode='off';}else{mode=mode===m?'off':m;}dc.className=mode==='off'?'':(mode+'-on');['btn-pointer','btn-pen','btn-eraser'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('active');});if(mode==='off')document.getElementById('btn-pointer').classList.add('active');if(mode==='pen')document.getElementById('btn-pen').classList.add('active');if(mode==='eraser')document.getElementById('btn-eraser').classList.add('active');updateDrawCursorStyle();}
+function setColor(c,id){penColor=c;document.querySelectorAll('.cb').forEach(function(b){b.classList.remove('active');});document.getElementById(id).classList.add('active');if(mode!=='pen')setMode('pen');updateDrawCursorStyle();}
+function setSize(s,id){penSize=s;document.querySelectorAll('.sb').forEach(function(b){b.classList.remove('active');});document.getElementById(id).classList.add('active');updateDrawCursorStyle();}
+function clearAll(){dctx.clearRect(0,0,dc.width,dc.height);}
+function getPos(e){var r=dc.getBoundingClientRect();if(e.touches)return{x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top};return{x:e.clientX-r.left,y:e.clientY-r.top};}
+function moveDrawCursor(e){if(!drawCursor||mode==='off')return;var p=getPos(e);drawCursor.style.left=p.x+'px';drawCursor.style.top=p.y+'px';}
+document.addEventListener('mousemove',moveDrawCursor);
+dc.addEventListener('mouseleave',function(){drawing=false;if(drawCursor)drawCursor.classList.remove('show');});
+dc.addEventListener('mouseenter',updateDrawCursorStyle);
+dc.addEventListener('mousedown',function(e){if(mode==='off')return;moveDrawCursor(e);drawing=true;var p=getPos(e);lx=p.x;ly=p.y;});
+dc.addEventListener('mousemove',function(e){if(!drawing||mode==='off')return;var p=getPos(e);dl(lx,ly,p.x,p.y);lx=p.x;ly=p.y;});
+dc.addEventListener('mouseup',function(){drawing=false;});
+dc.addEventListener('touchstart',function(e){e.preventDefault();if(mode==='off')return;moveDrawCursor(e);drawing=true;var p=getPos(e);lx=p.x;ly=p.y;},{passive:false});
+dc.addEventListener('touchmove',function(e){e.preventDefault();if(mode!=='off')moveDrawCursor(e);if(!drawing||mode==='off')return;var p=getPos(e);dl(lx,ly,p.x,p.y);lx=p.x;ly=p.y;},{passive:false});
+dc.addEventListener('touchend',function(){drawing=false;if(drawCursor)drawCursor.classList.remove('show');});
+function dl(x1,y1,x2,y2){dctx.beginPath();if(mode==='eraser'){dctx.globalCompositeOperation='destination-out';dctx.lineWidth=penSize*6;}else{dctx.globalCompositeOperation='source-over';dctx.strokeStyle=penColor;dctx.lineWidth=penSize;}dctx.lineCap='round';dctx.lineJoin='round';dctx.moveTo(x1,y1);dctx.lineTo(x2,y2);dctx.stroke();dctx.globalCompositeOperation='source-over';}
+// ══════════════════════════════════
+// SLIDE ZOOM & SCROLL
+// ══════════════════════════════════
+var zoomMode = 'page';
+var zoomManual = 100;
+var ZOOM_MODE_KEY = 'heap-slide-zoom-mode';
+var ZOOM_MANUAL_KEY = 'heap-slide-zoom-manual';
+
+function getActiveSlide() {
+  return document.querySelector('.slide.active');
+}
+
+function getActiveWrap() {
+  var slide = getActiveSlide();
+  return slide ? slide.querySelector('.cpp-wrap') : null;
+}
+
+function measureWrap(wrap) {
+  var prevTransform = wrap.style.transform;
+  var prevMargin = wrap.style.marginBottom;
+  wrap.style.transform = 'none';
+  wrap.style.marginBottom = '0';
+  var w = wrap.offsetWidth;
+  var h = wrap.scrollHeight;
+  wrap.style.transform = prevTransform;
+  wrap.style.marginBottom = prevMargin;
+  return { w: w, h: h };
+}
+
+function zoomAvailSize() {
+  var slide = getActiveSlide();
+  if (!slide) return { w: window.innerWidth - 48, h: window.innerHeight - 100 };
+  return { w: slide.clientWidth - 32, h: slide.clientHeight - 24 };
+}
+
+function computeAutoScale(mode) {
+  var wrap = getActiveWrap();
+  if (!wrap) return 1;
+  var size = measureWrap(wrap);
+  var avail = zoomAvailSize();
+  if (!size.w || !size.h) return 1;
+  if (mode === 'width') return avail.w / size.w;
+  if (mode === 'height') return avail.h / size.h;
+  return Math.min(avail.w / size.w, avail.h / size.h);
+}
+
+function updateZoomUI(scale) {
+  var pct = Math.round(scale * 100);
+  var label = document.getElementById('zoom-pct');
+  var slider = document.getElementById('zoom-slider');
+  if (label) label.textContent = pct + '%';
+  if (slider && zoomMode !== 'manual') slider.value = Math.min(200, Math.max(50, pct));
+  if (slider && zoomMode === 'manual') slider.value = zoomManual;
+  document.querySelectorAll('[data-zoom-mode]').forEach(function (btn) {
+    btn.classList.toggle('active', btn.getAttribute('data-zoom-mode') === zoomMode);
+  });
+}
+
+function applySlideZoom() {
+  var wrap = getActiveWrap();
+  if (!wrap) return;
+  var size = measureWrap(wrap);
+  var scale = zoomManual / 100;
+  if (zoomMode !== 'manual') {
+    scale = computeAutoScale(zoomMode);
+    zoomManual = Math.round(scale * 100);
+  }
+  scale = Math.max(0.5, Math.min(2, scale));
+  wrap.style.transform = 'scale(' + scale + ')';
+  wrap.style.transformOrigin = 'top center';
+  wrap.style.marginBottom = scale > 1 ? (size.h * (scale - 1)) + 'px' : '0';
+  updateZoomUI(scale);
+}
+
+function setZoomMode(mode) {
+  zoomMode = mode;
+  try { localStorage.setItem(ZOOM_MODE_KEY, mode); } catch (e) {}
+  applySlideZoom();
+}
+
+function setZoomManual(pct) {
+  zoomMode = 'manual';
+  zoomManual = parseInt(pct, 10) || 100;
+  try {
+    localStorage.setItem(ZOOM_MODE_KEY, 'manual');
+    localStorage.setItem(ZOOM_MANUAL_KEY, String(zoomManual));
+  } catch (e) {}
+  applySlideZoom();
+}
+
+function resetSlideScroll() {
+  var slide = getActiveSlide();
+  if (slide) slide.scrollTop = 0;
+}
+
+function initZoom() {
+  try { zoomMode = localStorage.getItem(ZOOM_MODE_KEY) || 'page'; } catch (e) {}
+  try { zoomManual = parseInt(localStorage.getItem(ZOOM_MANUAL_KEY), 10) || 100; } catch (e) {}
+  var slider = document.getElementById('zoom-slider');
+  if (slider) slider.value = zoomManual;
+  applySlideZoom();
+  var resizeTimer;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(applySlideZoom, 120);
+  });
+}
+// ══════════════════════════════════
+// SHARED HELPERS, QUIZ & CODE CHROME
+// ══════════════════════════════════
+function showEl(id){var el=document.getElementById(id);if(el)el.classList.add('show');}
+function hideEl(id){var el=document.getElementById(id);if(el)el.classList.remove('show');}
+function setInfo(t){document.getElementById('info-bar').textContent=t;}
+function setCounter(t){document.getElementById('counter').textContent=t;}
+
+function mkRng(seed){
+  var s=seed|0;
+  return function(){
+    s=(s*16807)%2147483647;
+    return(s-1)/2147483646;
+  };
+}
+var GLOBAL_RNG=mkRng(42);
+
+function randInt(rng,lo,hi){
+  return lo+Math.floor(rng()*(hi-lo+1));
+}
+function shuffleCopy(rng,arr){
+  var a=arr.slice();
+  for(var i=a.length-1;i>0;i--){
+    var j=Math.floor(rng()*(i+1));
+    var t=a[i];a[i]=a[j];a[j]=t;
+  }
+  return a;
+}
+
+function hlCode(blockId,lineNum,warn){
+  var block=document.getElementById(blockId);
+  if(!block)return;
+  block.querySelectorAll('.code-line').forEach(function(ln){
+    ln.classList.remove('hl','hl-warn','hl-ptr');
+  });
+  var line=block.querySelector('[data-line="'+lineNum+'"]');
+  if(line)line.classList.add(warn?'hl-warn':(warn===2?'hl-ptr':'hl'));
+}
+
+function clearHl(blockId){
+  var block=document.getElementById(blockId);
+  if(!block)return;
+  block.querySelectorAll('.code-line').forEach(function(ln){
+    ln.classList.remove('hl','hl-warn','hl-ptr');
+  });
+}
+
+function lockCode(id){
+  var el=document.getElementById(id);
+  if(el){el.classList.add('locked');el.classList.remove('revealed');}
+}
+
+function unlockCode(id){
+  var el=document.getElementById(id);
+  if(el){el.classList.remove('locked');el.classList.add('revealed');}
+}
+
+function resetQuiz(quizId){
+  var box=document.getElementById(quizId);
+  if(!box)return;
+  box.querySelectorAll('.quiz-btn').forEach(function(b){
+    b.disabled=false;b.classList.remove('correct','wrong');
+  });
+  var fb=box.querySelector('.quiz-fb');
+  if(fb){fb.textContent='';fb.className='quiz-fb';}
+}
+
+function checkQuiz(quizId,correctIdx,codeIds,cb,btn){
+  var box=document.getElementById(quizId);
+  if(!box||!btn)return;
+  var btns=box.querySelectorAll('.quiz-btn');
+  var idx=Array.prototype.indexOf.call(btns,btn);
+  var fb=box.querySelector('.quiz-fb');
+  if(idx<0||idx!==correctIdx){
+    btn.classList.add('wrong');
+    if(fb){fb.textContent='Not quite — read the hint and try again';fb.className='quiz-fb warn';}
+    setTimeout(function(){btn.classList.remove('wrong');},400);
+    return;
+  }
+  btns.forEach(function(b){b.disabled=true;});
+  btn.classList.add('correct');
+  if(fb){
+    fb.textContent=codeIds?'✓ Correct — revealed below':'✓ Correct!';
+    fb.className='quiz-fb ok';
+  }
+  if(codeIds){
+    (Array.isArray(codeIds)?codeIds:[codeIds]).forEach(unlockCode);
+  }
+  if(cb)cb();
+}
+
+var codeTheme='dark';
+var codeShowLines=true;
+var CODE_THEME_KEY='heap-code-theme';
+var CODE_LINES_KEY='heap-code-lines';
+var CODE_EDIT_KEY='heap-code:';
+
+var CODE_ICON_SUN='<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 2v1.2M8 12.8V14M2 8h1.2M12.8 8H14M3.8 3.8l.85.85M11.35 11.35l.85.85M3.8 12.2l.85-.85M11.35 4.65l.85-.85" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+var CODE_ICON_MOON='<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.2 10.4a5.2 5.2 0 01-6.6-6.6A5.2 5.2 0 1012.2 10.4z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+var CODE_ICON_LN='<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5h1.2v1.2H3.5V3.5zm0 4h1.2v1.2H3.5V7.5zm0 4h1.2v1.2H3.5v-1.2z" fill="currentColor"/><path d="M7.5 4.2h6M7.5 8h6M7.5 11.8h6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/></svg>';
+var CODE_ICON_EDIT='<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M11.1 2.5a1.2 1.2 0 011.7 1.7l-7.2 7.2-2.3.6.6-2.3 7.2-7.2z" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/></svg>';
+
+function codeThemeIcon(theme){return theme==='dark'?CODE_ICON_SUN:CODE_ICON_MOON;}
+
+function prepareCodeBlockLines(block){
+  if(block.dataset.linesPrepared)return;
+  var existing=block.querySelectorAll('.code-line');
+  if(existing.length){
+    var n=0;
+    existing.forEach(function(line){
+      if(!line.hasAttribute('data-line')){n++;line.setAttribute('data-line',String(n));}
+    });
+    block.dataset.linesPrepared='1';
+    return;
+  }
+  var parts=[];
+  block.childNodes.forEach(function(node){
+    if(node.nodeType===1&&node.classList&&node.classList.contains('code-block-toolbar'))return;
+    if(node.nodeType===1)parts.push(node.outerHTML);
+    else if(node.nodeType===3)parts.push(node.textContent);
+  });
+  var html=parts.join('').trim();
+  if(!html){block.dataset.linesPrepared='1';return;}
+  var lines=html.split('\n');
+  var n=0;
+  var wrapped=lines.map(function(line){
+    n++;
+    if(line.trim()==='')return'<span class="code-line" data-line="'+n+'"></span>';
+    return'<span class="code-line" data-line="'+n+'">'+line+'</span>';
+  }).join('');
+  var toolbar=block.querySelector('.code-block-toolbar');
+  block.textContent='';
+  if(toolbar)block.appendChild(toolbar);
+  block.insertAdjacentHTML('beforeend',wrapped);
+  block.dataset.linesPrepared='1';
+}
+
+function applyCodeTheme(theme){
+  codeTheme=theme;
+  try{localStorage.setItem(CODE_THEME_KEY,theme);}catch(e){}
+  document.querySelectorAll('.code-block').forEach(function(block){
+    block.classList.toggle('theme-light',theme==='light');
+    var btn=block.querySelector('.code-theme-btn');
+    if(btn){
+      btn.innerHTML=codeThemeIcon(theme);
+      btn.title=theme==='dark'?'Light code theme':'Dark code theme';
+      btn.setAttribute('aria-label',btn.title);
+      btn.setAttribute('aria-pressed',theme==='light'?'true':'false');
+    }
+  });
+}
+
+function applyCodeLines(show){
+  codeShowLines=!!show;
+  try{localStorage.setItem(CODE_LINES_KEY,show?'1':'0');}catch(e){}
+  document.querySelectorAll('.code-block').forEach(function(block){
+    block.classList.toggle('show-lines',codeShowLines);
+    var btn=block.querySelector('.code-ln-btn');
+    if(btn){
+      btn.classList.toggle('active',codeShowLines);
+      btn.title=codeShowLines?'Hide line numbers':'Show line numbers';
+      btn.setAttribute('aria-label',btn.title);
+      btn.setAttribute('aria-pressed',codeShowLines?'true':'false');
+    }
+  });
+}
+
+function toggleCodeTheme(){applyCodeTheme(codeTheme==='dark'?'light':'dark');}
+function toggleCodeLines(){applyCodeLines(!codeShowLines);}
+
+function codeEditStorageKey(blockId){return CODE_EDIT_KEY+blockId;}
+function codeEditGetOverride(blockId){try{return localStorage.getItem(codeEditStorageKey(blockId));}catch(e){return null;}}
+function codeEditSetOverride(blockId,text){try{localStorage.setItem(codeEditStorageKey(blockId),text);}catch(e){}}
+function codeEditClearOverride(blockId){try{localStorage.removeItem(codeEditStorageKey(blockId));}catch(e){}}
+
+function escapeCodeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function extractBlockPlainText(block){
+  var lines=block.querySelectorAll('.code-line');
+  if(lines.length)return Array.prototype.map.call(lines,function(ln){return ln.textContent;}).join('\n');
+  var parts=[];
+  block.childNodes.forEach(function(n){
+    if(n.nodeType!==1)return;
+    if(n.classList&&(n.classList.contains('code-block-toolbar')||n.classList.contains('code-block-editor')))return;
+    parts.push(n.textContent);
+  });
+  return parts.join('\n').replace(/^\n+|\n+$/g,'');
+}
+
+function plainToCodeLinesHtml(text){
+  var lines=text.split('\n');
+  var n=0;
+  return lines.map(function(line){
+    n++;
+    if(line==='')return'<span class="code-line" data-line="'+n+'"></span>';
+    return'<span class="code-line" data-line="'+n+'">'+escapeCodeHtml(line)+'</span>';
+  }).join('');
+}
+
+function getCodeBlockToolbar(block){return block.querySelector('.code-block-toolbar');}
+
+function clearCodeBlockBody(block){
+  var toolbar=getCodeBlockToolbar(block);
+  var editor=block.querySelector('.code-block-editor');
+  Array.prototype.slice.call(block.childNodes).forEach(function(n){
+    if(n!==toolbar&&n!==editor)block.removeChild(n);
+  });
+}
+
+function setBlockPlainContent(block,text){
+  clearCodeBlockBody(block);
+  block.insertAdjacentHTML('beforeend',plainToCodeLinesHtml(text));
+  delete block.dataset.linesPrepared;
+  prepareCodeBlockLines(block);
+}
+
+function snapshotBlockDefault(block){
+  if(!block.id||block.dataset.defaultPlain)return;
+  block.dataset.defaultPlain=extractBlockPlainText(block);
+}
+
+function applyCodeOverride(block){
+  if(!block.id)return;
+  var saved=codeEditGetOverride(block.id);
+  if(saved===null)return;
+  setBlockPlainContent(block,saved);
+}
+
+function updateCodeEditBtn(block){
+  var btn=block.querySelector('.code-edit-btn');
+  if(!btn||!block.id)return;
+  var customized=codeEditGetOverride(block.id)!==null;
+  btn.classList.toggle('has-override',customized);
+  btn.title=customized?'Edit code (customized)':'Edit code';
+  btn.setAttribute('aria-label',btn.title);
+}
+
+function codeEditClose(block){
+  block.classList.remove('code-block-editing');
+  var editor=block.querySelector('.code-block-editor');
+  if(editor)editor.remove();
+  var toolbar=getCodeBlockToolbar(block);
+  if(toolbar)toolbar.style.display='';
+}
+
+function codeEditSave(block,ta){
+  codeEditSetOverride(block.id,ta.value);
+  setBlockPlainContent(block,ta.value);
+  codeEditClose(block);
+  updateCodeEditBtn(block);
+  setInfo('Code saved — persists on refresh');
+}
+
+function codeEditRevert(block){
+  codeEditClearOverride(block.id);
+  setBlockPlainContent(block,block.dataset.defaultPlain||'');
+  codeEditClose(block);
+  updateCodeEditBtn(block);
+  setInfo('Code reverted to original');
+}
+
+function codeEditOpen(block){
+  if(!block.id||block.classList.contains('code-block-editing'))return;
+  snapshotBlockDefault(block);
+  var current=extractBlockPlainText(block);
+  block.classList.add('code-block-editing');
+  var toolbar=getCodeBlockToolbar(block);
+  if(toolbar)toolbar.style.display='none';
+  var editor=document.createElement('div');
+  editor.className='code-block-editor';
+  var ta=document.createElement('textarea');
+  ta.className='code-edit-textarea';
+  ta.value=current;
+  ta.spellcheck=false;
+  var actions=document.createElement('div');
+  actions.className='code-edit-actions';
+  var saveBtn=document.createElement('button');
+  saveBtn.type='button';saveBtn.className='code-edit-save';saveBtn.textContent='Save';
+  saveBtn.onclick=function(e){e.stopPropagation();codeEditSave(block,ta);};
+  var cancelBtn=document.createElement('button');
+  cancelBtn.type='button';cancelBtn.className='code-edit-cancel';cancelBtn.textContent='Cancel';
+  cancelBtn.onclick=function(e){e.stopPropagation();codeEditClose(block);};
+  actions.appendChild(saveBtn);actions.appendChild(cancelBtn);
+  if(codeEditGetOverride(block.id)!==null){
+    var revertBtn=document.createElement('button');
+    revertBtn.type='button';revertBtn.className='code-edit-revert';revertBtn.textContent='Revert';
+    revertBtn.onclick=function(e){e.stopPropagation();codeEditRevert(block);};
+    actions.appendChild(revertBtn);
+  }
+  ta.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){e.preventDefault();codeEditClose(block);}
+    if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();codeEditSave(block,ta);}
+  });
+  editor.appendChild(ta);editor.appendChild(actions);block.appendChild(editor);
+  ta.focus();
+}
+
+function attachCodeEditBtn(block,toolbar){
+  if(!block.id||toolbar.querySelector('.code-edit-btn'))return;
+  var editBtn=document.createElement('button');
+  editBtn.type='button';editBtn.className='code-edit-btn';
+  editBtn.innerHTML=CODE_ICON_EDIT;
+  editBtn.onclick=function(e){e.stopPropagation();codeEditOpen(block);};
+  toolbar.insertBefore(editBtn,toolbar.firstChild);
+  updateCodeEditBtn(block);
+}
+
+function initCodeBlocks(){
+  try{codeTheme=localStorage.getItem(CODE_THEME_KEY)||'dark';}catch(e){}
+  try{codeShowLines=localStorage.getItem(CODE_LINES_KEY)!=='0';}catch(e){}
+  document.querySelectorAll('.code-block').forEach(function(block){
+    prepareCodeBlockLines(block);
+    snapshotBlockDefault(block);
+    applyCodeOverride(block);
+    var toolbar=block.querySelector('.code-block-toolbar');
+    if(!toolbar){
+      toolbar=document.createElement('div');
+      toolbar.className='code-block-toolbar';
+      var lnBtn=document.createElement('button');
+      lnBtn.type='button';lnBtn.className='code-ln-btn';lnBtn.innerHTML=CODE_ICON_LN;
+      lnBtn.onclick=function(e){e.stopPropagation();toggleCodeLines();};
+      var themeBtn=document.createElement('button');
+      themeBtn.type='button';themeBtn.className='code-theme-btn';
+      themeBtn.onclick=function(e){e.stopPropagation();toggleCodeTheme();};
+      toolbar.appendChild(lnBtn);toolbar.appendChild(themeBtn);
+      block.insertBefore(toolbar,block.firstChild);
+    }
+    attachCodeEditBtn(block,toolbar);
+  });
+  applyCodeTheme(codeTheme);
+  applyCodeLines(codeShowLines);
+}
+// ══════════════════════════════════
+// HEAP CORE — algorithms + canvas drawing
+// ══════════════════════════════════
+
+function leftChild(i){return 2*i+1;}
+function rightChild(i){return 2*i+2;}
+function parentOf(i){return Math.floor((i-1)/2);}
+function lastParent(n){return n<=1?-1:Math.floor((n-2)/2);}
+
+function isMaxHeap(arr){
+  for(var i=0;i<arr.length;i++){
+    var l=leftChild(i),r=rightChild(i);
+    if(l<arr.length&&arr[i]<arr[l])return false;
+    if(r<arr.length&&arr[i]<arr[r])return false;
+  }
+  return true;
+}
+
+function heapHeight(n){
+  if(n<=0)return 0;
+  return Math.floor(Math.log2(n))+1;
+}
+
+function buildMaxHeap(arr){
+  var a=arr.slice();
+  for(var i=lastParent(a.length);i>=0;i--)siftDown(a,i);
+  return a;
+}
+
+function siftDown(a,i){
+  var n=a.length;
+  while(true){
+    var l=leftChild(i),r=rightChild(i),largest=i;
+    if(l<n&&a[l]>a[largest])largest=l;
+    if(r<n&&a[r]>a[largest])largest=r;
+    if(largest===i)break;
+    var t=a[i];a[i]=a[largest];a[largest]=t;
+    i=largest;
+  }
+}
+
+function siftDownMin(a,i){
+  var n=a.length;
+  while(true){
+    var l=leftChild(i),r=rightChild(i),smallest=i;
+    if(l<n&&a[l]<a[smallest])smallest=l;
+    if(r<n&&a[r]<a[smallest])smallest=r;
+    if(smallest===i)break;
+    var t=a[i];a[i]=a[smallest];a[smallest]=t;
+    i=smallest;
+  }
+}
+
+function insertMaxHeap(h,v){
+  h.push(v);
+  var i=h.length-1;
+  while(i>0){
+    var p=parentOf(i);
+    if(h[p]>=h[i])break;
+    var t=h[p];h[p]=h[i];h[i]=t;
+    i=p;
+  }
+}
+
+function insertMinHeap(h,v){
+  h.push(v);
+  var i=h.length-1;
+  while(i>0){
+    var p=parentOf(i);
+    if(h[p]<=h[i])break;
+    var t=h[p];h[p]=h[i];h[i]=t;
+    i=p;
+  }
+}
+
+function popMaxHeap(h){
+  if(!h.length)return null;
+  var top=h[0];
+  if(h.length===1){h.pop();return top;}
+  h[0]=h.pop();
+  siftDown(h,0);
+  return top;
+}
+
+function popMinHeap(h){
+  if(!h.length)return null;
+  var top=h[0];
+  if(h.length===1){h.pop();return top;}
+  h[0]=h.pop();
+  siftDownMin(h,0);
+  return top;
+}
+
+function medianFromHeaps(lo,hi){
+  if(!lo.length&&!hi.length)return null;
+  if(lo.length>hi.length)return lo[0];
+  if(lo.length===hi.length)return(lo[0]+hi[0])/2;
+  return hi[0];
+}
+
+function traceMedianTwoHeap(stream){
+  var steps=[];
+  var lo=[],hi=[];
+  stream.forEach(function(n){
+    steps.push({phase:'arrive',val:n,lo:lo.slice(),hi:hi.slice(),msg:'Stream adds '+n});
+    if(!lo.length||n<=lo[0]){
+      insertMaxHeap(lo,n);
+      steps.push({phase:'to-lo',val:n,lo:lo.slice(),hi:hi.slice(),msg:n+' → max-heap (lower half)'});
+    }else{
+      insertMinHeap(hi,n);
+      steps.push({phase:'to-hi',val:n,lo:lo.slice(),hi:hi.slice(),msg:n+' → min-heap (upper half)'});
+    }
+    if(lo.length>hi.length+1){
+      steps.push({phase:'imbalance',bigger:'lo',val:lo[0],lo:lo.slice(),hi:hi.slice(),
+        msg:'|lower| = '+lo.length+' > |upper|+1 = '+(hi.length+1)+' → rebalance needed'});
+      var mv=popMaxHeap(lo);
+      steps.push({phase:'balance-move',from:'lo',to:'hi',val:mv,lo:lo.slice(),hi:hi.slice(),
+        msg:'Move '+mv+' from max-heap top → min-heap'});
+      insertMinHeap(hi,mv);
+      steps.push({phase:'balance-done',lo:lo.slice(),hi:hi.slice(),
+        msg:'Balanced: |lower| = '+lo.length+', |upper| = '+hi.length});
+    }else if(hi.length>lo.length){
+      steps.push({phase:'imbalance',bigger:'hi',val:hi[0],lo:lo.slice(),hi:hi.slice(),
+        msg:'|upper| = '+hi.length+' > |lower| = '+lo.length+' → rebalance needed'});
+      var mv2=popMinHeap(hi);
+      steps.push({phase:'balance-move',from:'hi',to:'lo',val:mv2,lo:lo.slice(),hi:hi.slice(),
+        msg:'Move '+mv2+' from min-heap top → max-heap'});
+      insertMaxHeap(lo,mv2);
+      steps.push({phase:'balance-done',lo:lo.slice(),hi:hi.slice(),
+        msg:'Balanced: |lower| = '+lo.length+', |upper| = '+hi.length});
+    }
+    var med=medianFromHeaps(lo,hi);
+    var mode=lo.length>hi.length?'lo':(lo.length===hi.length?'avg':'hi');
+    var medMsg;
+    if(mode==='lo')medMsg='|lower|='+lo.length+' > |upper|='+hi.length+' → median = max-heap top = '+lo[0];
+    else if(mode==='hi')medMsg='|upper| > |lower| → median = min-heap top = '+hi[0];
+    else medMsg='Equal sizes → median = ('+lo[0]+' + '+hi[0]+') / 2 = '+med;
+    steps.push({phase:'median',medianMode:mode,lo:lo.slice(),hi:hi.slice(),median:med,msg:medMsg});
+  });
+  return{lo:lo,hi:hi,steps:steps};
+}
+
+function buildMinHeap(arr){
+  var a=arr.slice();
+  for(var i=lastParent(a.length);i>=0;i--)siftDownMin(a,i);
+  return a;
+}
+
+function drawMinHeapTree(canvas,arr,opts){
+  drawHeapTree(canvas,arr,opts);
+}
+
+function traceInsert(arr,val){
+  var steps=[];
+  var a=arr.slice();
+  a.push(val);
+  var i=a.length-1;
+  steps.push({arr:a.slice(),hi:[i],line:2,msg:'Push '+val+' at index '+i});
+  while(i>0){
+    var p=parentOf(i);
+    steps.push({arr:a.slice(),hi:[i,p],line:5,msg:'Compare child['+i+']='+a[i]+' with parent['+p+']='+a[p]});
+    if(a[p]>=a[i]){
+      steps.push({arr:a.slice(),hi:[i,p],line:6,msg:'Heap property holds — stop'});
+      break;
+    }
+    var t=a[p];a[p]=a[i];a[i]=t;
+    steps.push({arr:a.slice(),hi:[i,p],line:7,swap:true,msg:'Swap — bubble up to parent['+p+']'});
+    i=p;
+  }
+  return{result:a,steps:steps};
+}
+
+function traceSiftDownSteps(a,startI){
+  var steps=[];
+  var i=startI;
+  var n=a.length;
+  while(true){
+    var l=leftChild(i),r=rightChild(i),largest=i;
+    if(l<n&&a[l]>a[largest])largest=l;
+    if(r<n&&a[r]>a[largest])largest=r;
+    var hi=[i];
+    if(l<n)hi.push(l);
+    if(r<n)hi.push(r);
+    steps.push({arr:a.slice(),hi:hi,line:10,msg:'Compare node['+i+']='+a[i]+' with children'});
+    if(largest===i){
+      steps.push({arr:a.slice(),hi:[i],line:13,msg:'No larger child — done at '+i});
+      break;
+    }
+    var t=a[i];a[i]=a[largest];a[largest]=t;
+    steps.push({arr:a.slice(),hi:[i,largest],line:14,swap:true,msg:'Swap down to index '+largest});
+    i=largest;
+  }
+  return steps;
+}
+
+function traceFloydHeapify(src){
+  var a=src.slice();
+  var steps=[];
+  var n=a.length;
+  var lp=lastParent(n);
+  steps.push({arr:a.slice(),hi:[],line:3,msg:'Floyd: i starts at lastParent('+n+') = '+lp});
+  for(var i=lp;i>=0;i--){
+    steps.push({arr:a.slice(),hi:[i],line:4,msg:'siftDown(a, '+i+') — fix subtree root value '+a[i]});
+    traceSiftDownSteps(a,i).forEach(function(st){steps.push(st);});
+  }
+  steps.push({arr:a.slice(),hi:[],line:3,msg:'Done — valid max-heap in O(n)'});
+  return{result:a,steps:steps};
+}
+
+function traceHeapifyViaInsert(src){
+  var steps=[];
+  var heap=[];
+  for(var k=0;k<src.length;k++){
+    var ins=traceInsert(heap,src[k]);
+    steps.push({phase:'insert',value:src[k],srcIdx:k,src:src.slice(),heapBefore:heap.slice(),steps:ins.steps,result:ins.result.slice()});
+    heap=ins.result.slice();
+  }
+  return{result:heap,steps:steps};
+}
+
+function tracePop(arr){
+  var steps=[];
+  if(!arr.length)return{result:[],steps:steps,popped:null};
+  var a=arr.slice();
+  var popped=a[0];
+  steps.push({arr:a.slice(),hi:[0],line:2,msg:'Save root '+popped+' to return'});
+  a[0]=a[a.length-1];
+  a.pop();
+  steps.push({arr:a.slice(),hi:[0],line:3,msg:'Move last element to root, shrink size'});
+  if(!a.length)return{result:a,steps:steps,popped:popped};
+  var i=0;
+  while(true){
+    var l=leftChild(i),r=rightChild(i),largest=i;
+    if(l<a.length&&a[l]>a[largest])largest=l;
+    if(r<a.length&&a[r]>a[largest])largest=r;
+    steps.push({arr:a.slice(),hi:[i,l,r].filter(function(x){return x<a.length;}),line:6,msg:'Find largest among node '+i+' and children'});
+    if(largest===i){
+      steps.push({arr:a.slice(),hi:[i],line:9,msg:'Heap property restored'});
+      break;
+    }
+    var t=a[i];a[i]=a[largest];a[largest]=t;
+    steps.push({arr:a.slice(),hi:[i,largest],line:10,swap:true,msg:'Swap down to index '+largest});
+    i=largest;
+  }
+  return{result:a,steps:steps,popped:popped};
+}
+
+function traceHeapSort(arr){
+  var heap=arr.slice();
+  var out=[];
+  var steps=[];
+  for(var i=0;i<arr.length;i++){
+    var pop=tracePop(heap);
+    steps.push({heapBefore:heap.slice(),popSteps:pop.steps,popped:pop.popped,heapAfter:pop.result.slice(),sorted:out.concat([pop.popped])});
+    heap=pop.result.slice();
+    out.push(pop.popped);
+  }
+  return{sorted:out,steps:steps};
+}
+
+function genValidHeap(rng,size){
+  size=size||randInt(rng,6,12);
+  var vals=[];
+  for(var i=0;i<size;i++)vals.push(randInt(rng,1,99));
+  return buildMaxHeap(vals);
+}
+
+function genInvalidHeap(rng,size){
+  size=size||randInt(rng,6,10);
+  var a=[];
+  for(var i=0;i<size;i++)a.push(randInt(rng,1,99));
+  if(isMaxHeap(a)){
+    var j=randInt(rng,1,size-1);
+    var k=parentOf(j);
+    if(k>=0&&a[j]>a[k]){var t=a[j];a[j]=a[k];a[k]=t;}
+    else a[0]=a[0]+100;
+  }
+  return a;
+}
+
+function drawHeapTree(canvas,arr,opts){
+  opts=opts||{};
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#fafbff';
+  ctx.fillRect(0,0,W,H);
+  if(!arr||!arr.length){
+    ctx.fillStyle='#9ca3af';
+    ctx.font='13px -apple-system,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('(empty heap)',W/2,H/2);
+    return;
+  }
+  var n=arr.length;
+  var levels=heapHeight(n);
+  var nodes=[];
+  for(var i=0;i<n;i++){
+    var level=Math.floor(Math.log2(i+1));
+    var first=Math.pow(2,level)-1;
+    var count=Math.pow(2,level);
+    var pos=i-first;
+    var x=(pos+0.5)/count;
+    var y=(level+0.5)/levels;
+    nodes.push({i:i,val:arr[i],x:x,y:y});
+  }
+  var padX=44,padY=36;
+  var usableW=W-padX*2,usableH=H-padY*2;
+  function px(n){return padX+n.x*usableW;}
+  function py(n){return padY+n.y*usableH;}
+  ctx.strokeStyle='#cbd5e1';
+  ctx.lineWidth=2;
+  for(var j=0;j<n;j++){
+    var l=leftChild(j),r=rightChild(j);
+    if(l<n){ctx.beginPath();ctx.moveTo(px(nodes[j]),py(nodes[j])+18);ctx.lineTo(px(nodes[l]),py(nodes[l])-18);ctx.stroke();}
+    if(r<n){ctx.beginPath();ctx.moveTo(px(nodes[j]),py(nodes[j])+18);ctx.lineTo(px(nodes[r]),py(nodes[r])-18);ctx.stroke();}
+  }
+  var hi=opts.highlight||[];
+  var hiSet={};
+  hi.forEach(function(x){hiSet[x]=true;});
+  nodes.forEach(function(nd){
+    var rad=22;
+    var cx=px(nd),cy=py(nd);
+    var isRoot=nd.i===0;
+    if(hiSet[nd.i]){
+      ctx.fillStyle=opts.swap?'#fef3c7':'#ddd6fe';
+      ctx.strokeStyle=opts.swap?'#f59e0b':'#534AB7';
+      ctx.lineWidth=3;
+    }else if(opts.medianRoot&&isRoot){
+      ctx.fillStyle='#fef9c3';
+      ctx.strokeStyle='#eab308';
+      ctx.lineWidth=3;
+    }else if(opts.moveRoot&&isRoot){
+      ctx.fillStyle='#ffedd5';
+      ctx.strokeStyle='#f97316';
+      ctx.lineWidth=3;
+    }else{
+      ctx.fillStyle='#fff';
+      ctx.strokeStyle=opts.biggerHeap?'#534AB7':'#94a3b8';
+      ctx.lineWidth=opts.biggerHeap&&isRoot?3:2;
+    }
+    ctx.beginPath();ctx.arc(cx,cy,rad,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#1a1a2e';
+    ctx.font='bold 14px Courier New,monospace';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(String(nd.val),cx,cy);
+    ctx.fillStyle='#6b7280';
+    ctx.font='10px -apple-system,sans-serif';
+    ctx.fillText('['+nd.i+']',cx,cy+rad+11);
+  });
+}
+
+function renderArrayBar(containerId,arr,hi,label){
+  var el=typeof containerId==='string'?document.getElementById(containerId):containerId;
+  if(!el)return;
+  var hiSet={};
+  (hi||[]).forEach(function(x){hiSet[x]=true;});
+  var html='<div class="arr-lbl">'+(label||'array')+'</div><div class="arr-cells">';
+  for(var i=0;i<(arr?arr.length:0);i++){
+    var cls=hiSet[i]?' arr-cell hi':' arr-cell';
+    html+='<div class="'+cls+'"><span class="ac-val">'+arr[i]+'</span><span class="ac-idx">'+i+'</span></div>';
+  }
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+function highlightCode(blockId,line){
+  if(line<0){clearHl(blockId);return;}
+  hlCode(blockId,line);
+}
+
+function drawDepthLadder(canvas,depth,maxDepth,currentIdx){
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  var rowH=Math.min(36,(H-20)/maxDepth);
+  for(var d=0;d<maxDepth;d++){
+    var y=12+d*rowH;
+    ctx.fillStyle=d===depth?'#534AB7':'#e5e7eb';
+    ctx.fillRect(20,y,W-40,rowH-6);
+    ctx.fillStyle=d===depth?'#fff':'#6b7280';
+    ctx.font=(d===depth?'bold ':'')+'12px -apple-system,sans-serif';
+    ctx.textAlign='left';
+    ctx.fillText('level '+d,32,y+rowH/2-2);
+    if(d===depth){
+      ctx.font='bold 13px Courier New,monospace';
+      ctx.textAlign='right';
+      ctx.fillText('index '+currentIdx,W-32,y+rowH/2-2);
+    }
+  }
+}
+
+function drawHeapSortViz(canvas,heap,sorted){
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#f8fafc';
+  ctx.fillRect(0,0,W,H);
+  var mid=W/2;
+  ctx.strokeStyle='#e5e7eb';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(mid,8);ctx.lineTo(mid,H-8);ctx.stroke();
+  ctx.fillStyle='#534AB7';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('HEAP',mid/2,16);
+  ctx.fillText('SORTED OUTPUT',mid+mid/2,16);
+  var tmp=document.createElement('canvas');
+  tmp.width=mid-20;tmp.height=H-30;
+  drawHeapTree(tmp,heap,{});
+  ctx.drawImage(tmp,10,22);
+  var cellW=36,gap=4,sx=mid+14,sy=H/2-(sorted.length*(cellW+gap))/2+cellW/2;
+  sorted.forEach(function(v,i){
+    var x=sx,y=sy+i*(cellW+gap);
+    ctx.fillStyle='#dcfce7';ctx.strokeStyle='#1D9E75';ctx.lineWidth=2;
+    ctx.fillRect(x-cellW/2,y-cellW/2,cellW,cellW);
+    ctx.strokeRect(x-cellW/2,y-cellW/2,cellW,cellW);
+    ctx.fillStyle='#15803d';ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(String(v),x,y);
+  });
+}
+// SLIDE 2
+var S2=[
+  function(){showEl('s2-p1');setInfo('A heap is a complete binary tree with the heap property.');},
+  function(){showEl('s2-p2');setInfo('Key applications — priority queues, sorting, top-K, streaming median.');},
+  function(){showEl('s2-p3');setInfo('Array-backed, cache-friendly, O(log n) operations — press → for representation.');}
+];
+function resetS2(){['s2-p1','s2-p2','s2-p3'].forEach(hideEl);s2Step=0;}
+// SLIDE 3 — representation
+var S3_DATA=[90,80,70,50,60,30,20];
+var s3Hover=-1;
+
+function initS3(){
+  renderArrayBar('s3-array-bar',S3_DATA,[],'max-heap array (n='+S3_DATA.length+')');
+  drawHeapTree(document.getElementById('s3-canvas'),S3_DATA,{});
+  var bar=document.getElementById('s3-array-bar');
+  if(!bar._wired){
+    bar._wired=true;
+    bar.addEventListener('mouseover',function(e){
+      var cell=e.target.closest('.arr-cell');
+      if(!cell)return;
+      var idx=Array.from(bar.querySelectorAll('.arr-cell')).indexOf(cell);
+      if(idx<0)return;
+      s3Hover=idx;
+      var hi=[idx];
+      var l=leftChild(idx),r=rightChild(idx);
+      if(l<S3_DATA.length)hi.push(l);
+      if(r<S3_DATA.length)hi.push(r);
+      renderArrayBar('s3-array-bar',S3_DATA,hi,'max-heap array (n='+S3_DATA.length+')');
+      drawHeapTree(document.getElementById('s3-canvas'),S3_DATA,{highlight:hi});
+      var hint='i='+idx;
+      if(l<S3_DATA.length)hint+=' · left='+l+' · right='+(r<S3_DATA.length?r:'—');
+      if(idx>0)hint+=' · parent='+parentOf(idx);
+      document.getElementById('s3-hint').textContent=hint;
+    });
+  }
+}
+
+var S3=[
+  function(){showEl('s3-formulas');setInfo('Index formulas for a 0-based array — no pointers needed.');},
+  function(){showEl('s3-demo');setInfo('Hover array cells to see parent/child links in the tree.');}
+];
+function resetS3(){hideEl('s3-formulas');hideEl('s3-demo');s3Step=0;initS3();}
+// SLIDE 4 — examples
+function setExTab(name,btn){
+  document.querySelectorAll('#s4 .tab-btn').forEach(function(b){b.classList.remove('active');});
+  if(btn)btn.classList.add('active');
+  document.querySelectorAll('#s4 .pane').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('pane-'+name).classList.add('active');
+}
+
+function regenExamples(){
+  var rng=mkRng(Date.now()%100000);
+  var vg=document.getElementById('s4-valid-grid');
+  var ig=document.getElementById('s4-invalid-grid');
+  vg.innerHTML='';ig.innerHTML='';
+  function addCard(parent,arr,valid){
+    var wrap=document.createElement('div');
+    wrap.className='panel show';
+    wrap.style.cssText='opacity:1;transform:none;padding:10px;';
+    wrap.innerHTML='<span class="badge '+(valid?'badge-ok':'badge-bad')+'">'+(valid?'✓ max-heap':'✗ violation')+'</span>';
+    var arrDiv=document.createElement('div');
+    arrDiv.className='arr-bar';arrDiv.style.margin='8px 0';
+    var cv=document.createElement('canvas');
+    cv.className='heap-canvas';cv.width=320;cv.height=200;
+    wrap.appendChild(arrDiv);wrap.appendChild(cv);parent.appendChild(wrap);
+    renderArrayBar(arrDiv,arr,[]);
+    drawHeapTree(cv,arr,{});
+  }
+  addCard(vg,genValidHeap(rng),true);
+  addCard(vg,genValidHeap(rng),true);
+  addCard(ig,genInvalidHeap(rng),false);
+  addCard(ig,genInvalidHeap(rng),false);
+}
+
+var S4=[
+  function(){showEl('s4-note');setInfo('Click Generate for new random examples. Toggle tabs for valid vs invalid.');}
+];
+function resetS4(){hideEl('s4-note');s4Step=0;regenExamples();}
+// SLIDE 5 — insert trace
+var s5Trace=null,s5Flat=[],s5Idx=0;
+var S5_HEAP=[50,40,30,20,10];
+var S5_INSERT=95;
+
+function prepS5(){
+  var ins=traceInsert(S5_HEAP,S5_INSERT);
+  s5Flat=ins.steps;
+  s5Idx=0;
+  clearHl('s5-insert');
+  document.getElementById('s5-start').textContent='['+S5_HEAP.join(', ')+']';
+  document.getElementById('s5-val').textContent=String(S5_INSERT);
+  showS5Step(0);
+}
+
+function showS5Step(i){
+  if(!s5Flat.length)return;
+  var st=s5Flat[Math.min(i,s5Flat.length-1)];
+  drawHeapTree(document.getElementById('s5-canvas'),st.arr,{highlight:st.hi,swap:st.swap});
+  renderArrayBar('s5-arr',st.arr,st.hi);
+  highlightCode('s5-insert',st.line);
+  document.getElementById('s5-msg').textContent=st.msg;
+}
+
+var S5=[];
+function resetS5(){s5Idx=0;prepS5();}
+function advanceS5(){
+  if(s5Idx<s5Flat.length-1){s5Idx++;showS5Step(s5Idx);setInfo(s5Flat[s5Idx].msg);return true;}
+  return false;
+}
+function rewindS5(){
+  if(s5Idx>0){s5Idx--;showS5Step(s5Idx);setInfo(s5Flat[s5Idx].msg);return true;}
+  return false;
+}
+// SLIDE 6 — insert complexity
+var S6_HEAP=[42,35,28,22,18,14,9,5,3,1];
+var S6_INSERT=99;
+var s6Flat=[],s6Idx=0;
+
+function prepS6(){
+  var ins=traceInsert(S6_HEAP,S6_INSERT);
+  s6Flat=ins.steps;
+  s6Idx=0;
+  showS6Step(0);
+}
+
+function levelOf(i){return Math.floor(Math.log2(i+1));}
+
+function showS6Step(i){
+  if(!s6Flat.length)return;
+  var st=s6Flat[Math.min(i,s6Flat.length-1)];
+  drawHeapTree(document.getElementById('s6-canvas'),st.arr,{highlight:st.hi,swap:st.swap});
+  renderArrayBar('s6-arr',st.arr,st.hi);
+  var curIdx=st.hi[0]!==undefined?st.hi[0]:0;
+  var maxD=heapHeight(st.arr.length);
+  drawDepthLadder(document.getElementById('s6-ladder'),levelOf(curIdx),maxD,curIdx);
+  document.getElementById('s6-text').innerHTML='Step '+(i+1)+'/'+s6Flat.length+': '+st.msg+
+    '<br><br>Current depth: <span class="math">'+levelOf(curIdx)+'</span> of <span class="math">'+(maxD-1)+'</span> (height = ⌊log₂ n⌋)';
+}
+
+var S6=[
+  function(){showEl('s6-quiz');resetQuiz('s6-quiz-box');setInfo('Quick check — worst-case insert climbs how many levels?');},
+  function(){showEl('s6-conclude');setInfo('Each swap climbs exactly one level → at most ⌊log₂ n⌋ swaps.');}
+];
+function resetS6(){hideEl('s6-conclude');hideEl('s6-quiz');resetQuiz('s6-quiz-box');s6Step=0;s6Idx=0;prepS6();}
+function advanceS6(){
+  if(s6Idx<s6Flat.length-1){s6Idx++;showS6Step(s6Idx);return true;}
+  return false;
+}
+function rewindS6(){
+  if(s6Idx>0){s6Idx--;showS6Step(s6Idx);return true;}
+  return false;
+}
+// SLIDE 7 — heapify via insert
+var S7_SRC=[15,10,20,8,25,5,30];
+var s7Trace=null,s7Phase=0,s7Sub=0,s7Flat=[];
+
+function prepS7(){
+  s7Trace=traceHeapifyViaInsert(S7_SRC);
+  s7Phase=0;s7Sub=0;
+  rebuildS7Flat();
+  clearHl('s7-insert');
+  showS7Frame();
+}
+
+function rebuildS7Flat(){
+  s7Flat=[];
+  s7Trace.steps.forEach(function(ph,pi){
+    ph.steps.forEach(function(st,si){
+      s7Flat.push({phase:pi,value:ph.value,src:ph.src,heapBefore:ph.heapBefore,st:st,sub:si,total:ph.steps.length});
+    });
+    s7Flat.push({phase:pi,value:ph.value,src:ph.src,heapBefore:ph.heapBefore,done:true,result:ph.result});
+  });
+}
+
+function showS7Frame(){
+  if(!s7Flat.length)return;
+  var f=s7Flat[Math.min(s7Sub,s7Flat.length-1)];
+  if(f.done){
+    renderArrayBar('s7-src',f.src,[f.phase],'source');
+    drawHeapTree(document.getElementById('s7-canvas'),f.result,{});
+    renderArrayBar('s7-heap-arr',f.result,[],'heap after insert '+f.value);
+    document.getElementById('s7-msg').textContent='Finished inserting '+f.value+' — heap size '+(f.phase+1);
+    highlightCode('s7-insert',-1);
+    return;
+  }
+  var st=f.st;
+  renderArrayBar('s7-src',f.src,[f.phase],'source');
+  drawHeapTree(document.getElementById('s7-canvas'),st.arr,{highlight:st.hi,swap:st.swap});
+  renderArrayBar('s7-heap-arr',st.arr,st.hi,'building heap');
+  highlightCode('s7-insert',st.line);
+  document.getElementById('s7-msg').textContent='Insert '+f.value+': '+st.msg;
+}
+
+function resetS7(){s7Sub=0;prepS7();}
+function advanceS7(){
+  if(s7Sub<s7Flat.length-1){s7Sub++;showS7Frame();setInfo(document.getElementById('s7-msg').textContent);return true;}
+  return false;
+}
+function rewindS7(){
+  if(s7Sub>0){s7Sub--;showS7Frame();return true;}
+  return false;
+}
+// SLIDE 8 — heapify complexity
+var S8=[
+  function(){showEl('s8-p1');setInfo('n successive inserts — each costs O(log k) as heap grows.');},
+  function(){showEl('s8-p2');setInfo('Sum of log₂(i) for i=1..n gives O(n log n).');},
+  function(){showEl('s8-quiz');showEl('s8-on-note');lockCode('s8-on-note');resetQuiz('s8-quiz-box');setInfo('Quiz: is there a faster way to build a heap?');},
+  function(){showEl('s8-p3');setInfo('Chaining facts: O(log n) insert × n times = O(n log n). Press → for heap pop.');}
+];
+function resetS8(){
+  ['s8-p1','s8-p2','s8-quiz','s8-on-note','s8-p3'].forEach(hideEl);
+  lockCode('s8-on-note');
+  resetQuiz('s8-quiz-box');
+  s8Step=0;
+}
+// SLIDE 9 — Floyd heapify
+var FLOYD_SRC=[19,36,2,25,15,5,44,30,28,12,9,17,3,21,7];
+var s9Flat=[],s9Idx=0;
+
+function genFloydArray(){
+  var rng=mkRng(Date.now()%100000);
+  var a=[];
+  for(var i=0;i<15;i++)a.push(randInt(rng,2,55));
+  return a;
+}
+
+function regenFloyd(){
+  FLOYD_SRC=genFloydArray();
+  prepS9();
+  hideEl('s9-done');
+}
+
+function prepS9(){
+  var tr=traceFloydHeapify(FLOYD_SRC);
+  s9Flat=tr.steps;
+  s9Idx=0;
+  clearHl('s9-floyd');
+  document.getElementById('s9-n').textContent=FLOYD_SRC.length;
+  document.getElementById('s9-lp').textContent=lastParent(FLOYD_SRC.length);
+  showS9Step(0);
+}
+
+function showS9Step(i){
+  if(!s9Flat.length)return;
+  var st=s9Flat[Math.min(i,s9Flat.length-1)];
+  drawHeapTree(document.getElementById('s9-canvas'),st.arr,{highlight:st.hi,swap:st.swap});
+  renderArrayBar('s9-arr',st.arr,st.hi,'array (in-place)');
+  highlightCode('s9-floyd',st.line);
+  document.getElementById('s9-msg').textContent=st.msg;
+  var cur='—';
+  if(st.hi&&st.hi.length)cur=String(st.hi[0]);
+  document.getElementById('s9-cur').textContent=cur;
+}
+
+var S9=[
+  function(){showEl('s9-done');setInfo('Floyd heapify: O(n) — faster than n successive inserts.');}
+];
+
+function resetS9(){hideEl('s9-done');s9Step=0;s9Idx=0;prepS9();}
+function advanceS9(){
+  if(s9Idx<s9Flat.length-1){s9Idx++;showS9Step(s9Idx);setInfo(s9Flat[s9Idx].msg);return true;}
+  return false;
+}
+function rewindS9(){
+  if(s9Idx>0){s9Idx--;showS9Step(s9Idx);return true;}
+  return false;
+}
+// SLIDE 10 — pop
+var S10_HEAP=[90,70,80,30,60,20,50,10];
+var s10PopFlat=[],s10PopIdx=0;
+
+function prepS10Pop(){
+  var pop=tracePop(S10_HEAP);
+  s10PopFlat=pop.steps;
+  s10PopIdx=0;
+  clearHl('s10-pop');
+  document.getElementById('s10-popped').textContent=String(pop.popped);
+  showS10PopStep(0);
+}
+
+function showS10PopStep(i){
+  if(!s10PopFlat.length)return;
+  var st=s10PopFlat[Math.min(i,s10PopFlat.length-1)];
+  drawHeapTree(document.getElementById('s10-canvas'),st.arr,{highlight:st.hi,swap:st.swap});
+  renderArrayBar('s10-arr',st.arr,st.hi);
+  highlightCode('s10-pop',st.line);
+  document.getElementById('s10-msg').textContent=st.msg;
+}
+
+function resetS10Pop(){s10PopIdx=0;prepS10Pop();}
+function advanceS10Pop(){
+  if(s10PopIdx<s10PopFlat.length-1){s10PopIdx++;showS10PopStep(s10PopIdx);setInfo(s10PopFlat[s10PopIdx].msg);return true;}
+  return false;
+}
+function rewindS10Pop(){
+  if(s10PopIdx>0){s10PopIdx--;showS10PopStep(s10PopIdx);return true;}
+  return false;
+}
+// SLIDE 11 — heap sort
+var s11Trace=null,s11Idx=0,s11Heap=[];
+
+function regenHeapSort(){
+  var rng=mkRng(Date.now()%100000);
+  var n=randInt(rng,7,10);
+  s11Heap=[];
+  for(var i=0;i<n;i++)s11Heap.push(randInt(rng,5,99));
+  s11Trace=traceHeapSort(buildMaxHeap(s11Heap.slice()));
+  s11Idx=0;
+  showS11Heap(0);
+  hideEl('s11-reveal');
+}
+
+function showS11Heap(i){
+  if(!s11Trace)return;
+  var steps=s11Trace.steps;
+  if(!steps.length)return;
+  var st=steps[Math.min(i,steps.length-1)];
+  drawHeapSortViz(document.getElementById('s11-canvas'),st.heapAfter,st.sorted);
+  renderArrayBar('s11-heap-arr',st.heapAfter,[],'heap remaining');
+  renderArrayBar('s11-out-arr',st.sorted,[],'sorted output (descending pops)');
+  document.getElementById('s11-msg').textContent='Pop #'+(i+1)+': extracted '+st.popped;
+}
+
+var S11HS=[
+  function(){showEl('s11-reveal');setInfo('Popping repeatedly sorts the array — that is heap sort!');}
+];
+function resetS11Heap(){hideEl('s11-reveal');s11HsStep=0;s11Idx=0;regenHeapSort();}
+function advanceS11Heap(){
+  if(s11Idx<s11Trace.steps.length-1){s11Idx++;showS11Heap(s11Idx);setInfo(document.getElementById('s11-msg').textContent);return true;}
+  return false;
+}
+function rewindS11Heap(){
+  if(s11Idx>0){s11Idx--;showS11Heap(s11Idx);return true;}
+  return false;
+}
+// SLIDE 12 — heapsort complexity
+var S12=[
+  function(){showEl('s12-p1');setInfo('Build + n pops = O(n log n) total time.');},
+  function(){showEl('s12-p2');setInfo('In-place sorting — O(1) extra space.');},
+  function(){showEl('s12-p3');setInfo('Trade-offs vs other sorts — press → for applications.');}
+];
+function resetS12(){['s12-p1','s12-p2','s12-p3'].forEach(hideEl);s12Step=0;}
+// SLIDE 13 — applications
+function toggleApp(id){
+  document.querySelectorAll('.app-card').forEach(function(card){
+    var open=card.id===id&&!card.classList.contains('open');
+    card.classList.toggle('open',open);
+    var body=card.querySelector('.app-body');
+    if(body)body.style.maxHeight=open?'120px':'0';
+  });
+}
+var S13=[
+  function(){showEl('s13-why');setInfo('Click cards to expand — heaps are everywhere in systems software.');}
+];
+function resetS13(){hideEl('s13-why');s13Step=0;document.querySelectorAll('.app-card').forEach(function(c){c.classList.remove('open');var b=c.querySelector('.app-body');if(b)b.style.maxHeight='0';});}
+// SLIDE 14 — leetcode
+var LC_DATA=[3,2,1,5,6,4,7,8];
+var lcActiveTab='kth';
+var MERGE_LISTS=[[1,4,7],[2,5,8],[3,6,9]];
+var mergePointers=[0,0,0];
+var mergeOut=[];
+var mergeHeap=[];
+var mergeStep=0;
+var mergeStepsBuilt=false;
+
+function setLcTab(name,btn){
+  lcActiveTab=name;
+  document.querySelectorAll('#s14 .tab-btn').forEach(function(b){b.classList.remove('active');});
+  if(btn)btn.classList.add('active');
+  document.querySelectorAll('#s14 .pane').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('pane-'+name).classList.add('active');
+  if(name==='merge'){resetMergeK();drawMergeK();}
+}
+
+function kthLargest(arr,k){
+  var h=arr.slice().sort(function(a,b){return a-b;});
+  return h[h.length-k];
+}
+
+function updateKth(){
+  var k=parseInt(document.getElementById('lc-k-slider').value,10);
+  document.getElementById('lc-k-val').textContent=k;
+  renderArrayBar('lc-kth-arr',LC_DATA,[]);
+  document.getElementById('lc-kth-ans').textContent=k+'rd largest = '+kthLargest(LC_DATA,k);
+}
+
+function resetMergeK(){
+  mergePointers=[0,0,0];
+  mergeOut=[];
+  mergeHeap=[];
+  mergeStep=0;
+  mergeStepsBuilt=false;
+  var el=document.getElementById('lc-merge-status');
+  if(el)el.textContent='Min-heap holds the head of each list — press → to merge';
+  renderArrayBar('lc-merge-out',[],[],'merged output');
+}
+
+function buildMergeHeap(){
+  mergeHeap=[];
+  for(var i=0;i<MERGE_LISTS.length;i++){
+    if(mergePointers[i]<MERGE_LISTS[i].length){
+      mergeHeap.push({val:MERGE_LISTS[i][mergePointers[i]],list:i});
+    }
+  }
+  mergeHeap.sort(function(a,b){return a.val-b.val;});
+}
+
+function drawMergeK(){
+  var cv=document.getElementById('lc-merge-canvas');
+  if(!cv)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#fafbff';
+  ctx.fillRect(0,0,W,H);
+  var colors=['#534AB7','#1D9E75','#f59e0b'];
+  var rowH=52;
+  MERGE_LISTS.forEach(function(lst,li){
+    var y=28+li*rowH;
+    ctx.fillStyle=colors[li];
+    ctx.font='bold 11px sans-serif';
+    ctx.textAlign='left';
+    ctx.fillText('L'+(li+1),12,y+18);
+    lst.forEach(function(v,i){
+      var x=48+i*46;
+      var isHead=i===mergePointers[li]&&mergePointers[li]<lst.length;
+      ctx.fillStyle=isHead?'#ddd6fe':'#fff';
+      ctx.strokeStyle=colors[li];
+      ctx.lineWidth=isHead?3:2;
+      ctx.beginPath();
+      ctx.roundRect(x,y,38,34,6);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle='#1a1a2e';
+      ctx.font='bold 13px monospace';
+      ctx.textAlign='center';
+      ctx.fillText(String(v),x+19,y+22);
+    });
+  });
+  var hx=420,hy=36;
+  ctx.fillStyle='#6b7280';
+  ctx.font='bold 10px sans-serif';
+  ctx.textAlign='left';
+  ctx.fillText('min-heap',hx,hy-8);
+  mergeHeap.forEach(function(node,i){
+    var cy=hy+8+i*38;
+    ctx.fillStyle='#ecfdf5';
+    ctx.strokeStyle='#1D9E75';
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.roundRect(hx,cy,52,30,6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle='#15803d';
+    ctx.font='bold 12px monospace';
+    ctx.textAlign='center';
+    ctx.fillText(String(node.val),hx+26,cy+19);
+    ctx.fillStyle='#9ca3af';
+    ctx.font='9px sans-serif';
+    ctx.fillText('L'+(node.list+1),hx+26,cy+28);
+  });
+}
+
+function advanceMergeK(){
+  if(mergeStep===0&&mergeOut.length===0){
+    buildMergeHeap();
+    drawMergeK();
+    document.getElementById('lc-merge-status').textContent='Heap holds list heads: '+mergeHeap.map(function(n){return n.val;}).join(', ');
+    return true;
+  }
+  if(!mergeHeap.length){
+    document.getElementById('lc-merge-status').textContent='Done — all lists merged';
+    return false;
+  }
+  var min=mergeHeap.shift();
+  mergeOut.push(min.val);
+  mergePointers[min.list]++;
+  if(mergePointers[min.list]<MERGE_LISTS[min.list].length){
+    mergeHeap.push({val:MERGE_LISTS[min.list][mergePointers[min.list]],list:min.list});
+    mergeHeap.sort(function(a,b){return a.val-b.val;});
+  }
+  buildMergeHeap();
+  drawMergeK();
+  renderArrayBar('lc-merge-out',mergeOut,[],'merged output');
+  document.getElementById('lc-merge-status').textContent='Pop '+min.val+' from L'+(min.list+1)+' → append to result';
+  mergeStep++;
+  return mergeHeap.length>0||mergeOut.length<9;
+}
+
+function initLc(){
+  document.getElementById('lc-k-slider').max=LC_DATA.length;
+  updateKth();
+  resetMergeK();
+  drawMergeK();
+  setLcTab('kth',document.querySelector('#s14 .tab-btn'));
+}
+
+function lcNextStep(){
+  if(lcActiveTab==='merge'){
+    if(advanceMergeK())return true;
+    return false;
+  }
+  return false;
+}
+
+function resetLc(){
+  lcActiveTab='kth';
+  resetMergeK();
+  updateKth();
+}
+// SLIDE 15 — streaming median (discussion only)
+var s15Stream=[];
+var MEDIAN_DEMO_POOL=[5,15,1,3,8,7,9,2,12,4];
+var s15DemoIdx=0;
+var s15AutoTimer=null;
+
+function s15UpdateAutoLabel(){
+  var el=document.getElementById('s15-auto-val');
+  if(el)el.textContent=document.getElementById('s15-auto-count').value;
+}
+
+function s15MedianFromSorted(arr){
+  if(!arr.length)return '—';
+  var s=arr.slice().sort(function(a,b){return a-b;});
+  if(s.length%2)return String(s[Math.floor(s.length/2)]);
+  return String((s[s.length/2-1]+s[s.length/2])/2);
+}
+
+function s15Refresh(){
+  renderArrayBar('s15-stream',s15Stream,[]);
+  document.getElementById('s15-median').textContent='Median = '+s15MedianFromSorted(s15Stream);
+}
+
+function s15AddNum(){
+  var n=randInt(GLOBAL_RNG,1,20);
+  s15Stream.push(n);
+  s15Refresh();
+  setInfo('Added '+n+' — naive median by sorting (not the heap solution yet)');
+}
+
+function s15AutoStream(){
+  clearTimeout(s15AutoTimer);
+  var target=parseInt(document.getElementById('s15-auto-count').value,10);
+  s15Stream=[];
+  s15DemoIdx=0;
+  s15Refresh();
+  var added=0;
+  function tick(){
+    if(added>=target||s15DemoIdx>=MEDIAN_DEMO_POOL.length){
+      setInfo('Auto stream finished — '+added+' numbers added');
+      return;
+    }
+    s15Stream.push(MEDIAN_DEMO_POOL[s15DemoIdx++]);
+    added++;
+    s15Refresh();
+    if(added<target)s15AutoTimer=setTimeout(tick,450);
+    else setInfo('Auto stream finished — median = '+s15MedianFromSorted(s15Stream));
+  }
+  setInfo('Auto streaming '+target+' numbers…');
+  tick();
+}
+
+function resetS15Stream(){
+  clearTimeout(s15AutoTimer);
+  s15Stream=[];
+  s15DemoIdx=0;
+  s15Refresh();
+}
+
+var S15=[
+  function(){showEl('s15-p1');setInfo('Sorting the whole stream on every insert is O(n log n) per update.');},
+  function(){showEl('s15-p2');setInfo('Challenge the audience: track the middle in O(log n) per addNum.');},
+  function(){showEl('s15-p3');setInfo('Press → for the two-heap solution with live animation.');}
+];
+
+function resetS15(){
+  ['s15-p1','s15-p2','s15-p3'].forEach(hideEl);
+  s15Step=0;
+  resetS15Stream();
+}
+
+function initS15(){
+  resetS15Stream();
+  s15Stream=[2,5,1];
+  s15Refresh();
+  s15UpdateAutoLabel();
+}
+// SLIDE 16 — two-heap median animation
+var S16_STREAM=[5,15,1,3,8];
+var s16Flat=[],s16Idx=0;
+var s16AutoTimer=null;
+
+function s16UpdateAutoLabel(){
+  var el=document.getElementById('s16-auto-val');
+  if(el)el.textContent=document.getElementById('s16-auto-count').value;
+}
+
+function s16RebuildForCount(n){
+  S16_STREAM=MEDIAN_DEMO_POOL.slice(0,Math.min(n,MEDIAN_DEMO_POOL.length));
+  prepS16();
+}
+
+function s16StreamSoFar(idx){
+  var out=[];
+  for(var i=0;i<=idx&&i<s16Flat.length;i++){
+    if(s16Flat[i].phase==='arrive')out.push(s16Flat[i].val);
+  }
+  return out;
+}
+
+function s16HeapDrawOpts(side,st){
+  var opts={highlight:[]};
+  var loN=st.lo?st.lo.length:0;
+  var hiN=st.hi?st.hi.length:0;
+  if(st.phase==='imbalance'){
+    if(st.bigger==='lo'&&side==='lo'){opts.biggerHeap=true;opts.highlight=[0];opts.moveRoot=true;}
+    if(st.bigger==='hi'&&side==='hi'){opts.biggerHeap=true;opts.highlight=[0];opts.moveRoot=true;}
+  }
+  if(st.phase==='balance-move'){
+    if(st.to==='lo'&&side==='lo'){opts.highlight=[0];}
+    if(st.to==='hi'&&side==='hi'){opts.highlight=[0];}
+  }
+  if(st.phase==='median'||st.phase==='balance-done'){
+    if(st.medianMode==='lo'&&side==='lo')opts.medianRoot=true;
+    else if(st.medianMode==='hi'&&side==='hi')opts.medianRoot=true;
+    else if(st.medianMode==='avg')opts.medianRoot=true;
+  }
+  if(st.phase==='to-lo'&&side==='lo')opts.highlight=[0];
+  if(st.phase==='to-hi'&&side==='hi')opts.highlight=[0];
+  return opts;
+}
+
+function s16ArrHi(side,st){
+  var hi=[];
+  if(st.phase==='imbalance'||st.phase==='balance-move'){
+    if(st.phase==='imbalance'&&st.from===side)hi=[0];
+    if(st.phase==='imbalance'&&st.bigger==='lo'&&side==='lo')hi=[0];
+    if(st.phase==='imbalance'&&st.bigger==='hi'&&side==='hi')hi=[0];
+  }
+  if(st.phase==='median'){
+    if(st.medianMode==='lo'&&side==='lo')hi=[0];
+    if(st.medianMode==='hi'&&side==='hi')hi=[0];
+    if(st.medianMode==='avg')hi=[0];
+  }
+  return hi;
+}
+
+function s16ArrCellClass(i,side,st){
+  if(i!==0)return '';
+  if((st.phase==='imbalance')&&st.bigger===side) return ' move-root';
+  if(st.phase==='median'){
+    if(st.medianMode==='lo'&&side==='lo')return ' med-root';
+    if(st.medianMode==='hi'&&side==='hi')return ' med-root';
+    if(st.medianMode==='avg')return ' med-root';
+  }
+  return '';
+}
+
+function renderMedianHeapBar(containerId,arr,side,st,label){
+  var el=document.getElementById(containerId);
+  if(!el)return;
+  var html='<div class="arr-lbl">'+label+'</div><div class="arr-cells">';
+  for(var i=0;i<(arr?arr.length:0);i++){
+    var extra=s16ArrCellClass(i,side,st);
+    html+='<div class="arr-cell'+extra+'"><span class="ac-val">'+arr[i]+'</span><span class="ac-idx">'+(i===0?'top':i)+'</span></div>';
+  }
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+function drawS16Arrow(st){
+  var cv=document.getElementById('s16-arrow-canvas');
+  if(!cv)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  var cy=H*0.38;
+  function arrow(lr,label,color){
+    ctx.strokeStyle=color;
+    ctx.fillStyle=color;
+    ctx.lineWidth=2.5;
+    ctx.beginPath();
+    if(lr==='lr'){
+      ctx.moveTo(8,cy);ctx.lineTo(W-14,cy);
+      ctx.lineTo(W-20,cy-7);ctx.moveTo(W-14,cy);ctx.lineTo(W-20,cy+7);
+    }else{
+      ctx.moveTo(W-8,cy);ctx.lineTo(14,cy);
+      ctx.lineTo(20,cy-7);ctx.moveTo(14,cy);ctx.lineTo(20,cy+7);
+    }
+    ctx.stroke();
+    ctx.font='bold 11px -apple-system,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(label,W/2,cy-12);
+  }
+  if(st.phase==='imbalance'){
+    if(st.bigger==='lo')arrow('lr','n+1 → n','#f97316');
+    if(st.bigger==='hi')arrow('rl','n → n+1','#f97316');
+  }
+  if(st.phase==='balance-move'){
+    if(st.from==='lo')arrow('lr',String(st.val),'#f97316');
+    if(st.from==='hi')arrow('rl',String(st.val),'#f97316');
+  }
+  if(st.phase==='median'){
+    ctx.font='bold 12px -apple-system,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillStyle=st.medianMode==='avg'?'#b45309':(st.medianMode==='hi'?'#15803d':'#534AB7');
+    if(st.medianMode==='avg')ctx.fillText('avg',W/2,cy);
+    else if(st.medianMode==='lo')ctx.fillText('⌢',W/2,cy+4);
+    else ctx.fillText('⌢',W/2,cy+4);
+  }
+}
+
+function drawS16MedianRule(st){
+  var el=document.getElementById('s16-median-rule');
+  if(!el)return;
+  el.className='s16-median-rule';
+  if(st.phase==='imbalance'){
+    el.className='s16-median-rule';
+    el.textContent='⚠ One heap has too many — pop top & move';
+    return;
+  }
+  if(st.phase==='balance-move'){
+    el.textContent='⇄ Balancing sizes…';
+    return;
+  }
+  if(st.phase==='balance-done'){
+    el.textContent='✓ Sizes OK (differ by ≤1)';
+    return;
+  }
+  if(st.phase==='median'){
+    if(st.medianMode==='lo'){
+      el.className='s16-median-rule';
+      el.innerHTML='|lower| > |upper|<br>median = <strong>max-heap top</strong>';
+    }else if(st.medianMode==='hi'){
+      el.className='s16-median-rule mode-hi';
+      el.innerHTML='|upper| > |lower|<br>median = <strong>min-heap top</strong>';
+    }else{
+      el.className='s16-median-rule mode-avg';
+      el.innerHTML='Equal sizes<br>median = <strong>avg of tops</strong>';
+    }
+    return;
+  }
+  el.textContent='';
+}
+
+function s16UpdateColumns(st){
+  var loCol=document.getElementById('s16-lo-col');
+  var hiCol=document.getElementById('s16-hi-col');
+  if(!loCol||!hiCol)return;
+  loCol.className='s16-heap-col';
+  hiCol.className='s16-heap-col';
+  var loN=st.lo?st.lo.length:0;
+  var hiN=st.hi?st.hi.length:0;
+  document.getElementById('s16-lo-size').textContent='n='+loN;
+  document.getElementById('s16-hi-size').textContent='n='+hiN;
+  if(st.phase==='imbalance'){
+    if(st.bigger==='lo')loCol.classList.add('bigger-lo');
+    if(st.bigger==='hi')hiCol.classList.add('bigger-hi');
+  }
+  if(st.phase==='balance-move'){
+    if(st.from==='lo')loCol.classList.add('move-from');
+    if(st.from==='hi')hiCol.classList.add('move-from');
+  }
+  if(st.phase==='median'||st.phase==='balance-done'){
+    if(loN>hiN)loCol.classList.add('bigger-lo');
+    else if(hiN>loN)hiCol.classList.add('bigger-hi');
+  }
+}
+
+function showS16Frame(i){
+  if(!s16Flat.length)return;
+  var st=s16Flat[Math.min(i,s16Flat.length-1)];
+  drawHeapTree(document.getElementById('s16-lo-canvas'),st.lo,s16HeapDrawOpts('lo',st));
+  drawMinHeapTree(document.getElementById('s16-hi-canvas'),st.hi,s16HeapDrawOpts('hi',st));
+  renderMedianHeapBar('s16-lo-arr',st.lo,'lo',st,'max-heap (lower half)');
+  renderMedianHeapBar('s16-hi-arr',st.hi,'hi',st,'min-heap (upper half)');
+  drawS16Arrow(st);
+  drawS16MedianRule(st);
+  s16UpdateColumns(st);
+  document.getElementById('s16-msg').textContent=st.msg;
+  var stream=s16StreamSoFar(i);
+  document.getElementById('s16-stream-lbl').textContent=stream.length?stream.join(' → '):'—';
+  var med=st.median;
+  if(med===undefined){
+    for(var j=i;j>=0;j--){
+      if(s16Flat[j].median!==undefined){med=s16Flat[j].median;break;}
+    }
+  }
+  document.getElementById('s16-median').textContent=med!==undefined&&med!==null?'Median: '+med:'Median: —';
+}
+
+function prepS16(){
+  s16Flat=traceMedianTwoHeap(S16_STREAM).steps;
+  s16Idx=0;
+  showS16Frame(0);
+}
+
+function s16AddNext(){
+  if(s16Idx<s16Flat.length-1){
+    s16Idx++;
+    showS16Frame(s16Idx);
+    setInfo(s16Flat[s16Idx].msg);
+  }
+}
+
+function s16AutoStream(){
+  clearTimeout(s16AutoTimer);
+  var n=parseInt(document.getElementById('s16-auto-count').value,10);
+  s16RebuildForCount(n);
+  hideEl('s16-rule');
+  setInfo('Auto streaming '+n+' numbers through two-heap trace…');
+  function tick(){
+    if(s16Idx>=s16Flat.length-1){
+      setInfo('Auto stream complete — '+n+' numbers processed');
+      return;
+    }
+    s16Idx++;
+    showS16Frame(s16Idx);
+    setInfo(s16Flat[s16Idx].msg);
+    s16AutoTimer=setTimeout(tick,380);
+  }
+  s16AutoTimer=setTimeout(tick,380);
+}
+
+function resetS16Demo(){
+  clearTimeout(s16AutoTimer);
+  var n=parseInt(document.getElementById('s16-auto-count').value,10);
+  s16RebuildForCount(n);
+  hideEl('s16-rule');
+}
+
+var S16=[
+  function(){showEl('s16-rule');setInfo('|lo|−|hi| ≤ 1 · median from tops as shown in the center panel');}
+];
+
+function resetS16(){
+  clearTimeout(s16AutoTimer);
+  hideEl('s16-rule');
+  s16Step=0;
+  s16RebuildForCount(parseInt(document.getElementById('s16-auto-count').value,10)||5);
+}
+function advanceS16(){
+  if(s16Idx<s16Flat.length-1){s16Idx++;showS16Frame(s16Idx);setInfo(s16Flat[s16Idx].msg);return true;}
+  return false;
+}
+function rewindS16(){
+  if(s16Idx>0){s16Idx--;showS16Frame(s16Idx);return true;}
+  return false;
+}
+
+function initS16(){
+  s16UpdateAutoLabel();
+  s16RebuildForCount(parseInt(document.getElementById('s16-auto-count').value,10)||5);
+}
+// ══════════════════════════════════
+// SLIDE MANAGER (17 slides)
+// ══════════════════════════════════
+var curSlide=1,SLIDE_COUNT=17;
+var s2Step=0,s3Step=0,s4Step=0,s6Step=0,s8Step=0,s9Step=0,s11HsStep=0,s12Step=0,s13Step=0,s15Step=0,s16Step=0;
+
+function runSteps(arr,stepVar){
+  if(window[stepVar]<arr.length){arr[window[stepVar]]();window[stepVar]++;return true;}
+  return false;
+}
+function rewindSteps(arr,stepVar,resetFn){
+  if(window[stepVar]>1){window[stepVar]--;resetFn();for(var i=0;i<window[stepVar];i++)arr[i]();return true;}
+  return false;
+}
+
+function buildJumpPanel(){
+  var grid=document.getElementById('jump-grid');
+  if(!grid||grid.children.length)return;
+  for(var i=1;i<=SLIDE_COUNT;i++){
+    var b=document.createElement('button');
+    b.className='jump-btn'+(i===curSlide?' active':'');
+    b.textContent=i;
+    b.title='Slide '+i;
+    b.onclick=function(n){return function(){jumpToSlide(n);};}(i);
+    grid.appendChild(b);
+  }
+}
+
+function updateJumpActive(){
+  document.querySelectorAll('.jump-btn').forEach(function(b,i){
+    b.classList.toggle('active',i+1===curSlide);
+  });
+}
+
+function jumpToSlide(n){
+  if(n<1||n>SLIDE_COUNT||n===curSlide)return;
+  toggleJumpPanel(false);
+  goSlide(n);
+}
+
+function toggleJumpPanel(show){
+  var panel=document.getElementById('jump-panel');
+  var toggle=document.getElementById('jump-toggle');
+  if(!panel)return;
+  if(show===undefined)show=!panel.classList.contains('open');
+  panel.classList.toggle('open',show);
+  if(toggle)toggle.classList.toggle('active',show);
+}
+
+function onEnterSlide(n){
+  if(n===1)setInfo('Press → to begin · grid icon jumps · zoom bar top-left');
+  if(n===2){resetS2();S2[0]();s2Step=1;}
+  if(n===3){resetS3();S3[0]();s3Step=1;}
+  if(n===4){resetS4();S4[0]();s4Step=1;}
+  if(n===5){resetS5();setInfo('Step through heapInsert — highlighted line syncs with tree.');}
+  if(n===6){resetS6();setInfo('Trace the climb, then answer the complexity quiz.');}
+  if(n===7){resetS7();setInfo('Build heap by inserting each element from the source array.');}
+  if(n===8){resetS8();S8[0]();s8Step=1;}
+  if(n===9){resetS9();setInfo('Floyd heapify — 15 elements, sift-down from last parent to root.');}
+  if(n===10){resetS10Pop();setInfo('Extract-max: save root, sift last element down.');}
+  if(n===11){resetS11Heap();setInfo('Step through pops — sorted output grows on the right.');}
+  if(n===12){resetS12();S12[0]();s12Step=1;}
+  if(n===13){resetS13();S13[0]();s13Step=1;}
+  if(n===14){resetLc();initLc();setInfo('LeetCode #215 slider · switch to #23 tab and press → to merge');}
+  if(n===15){resetS15();initS15();S15[0]();s15Step=1;}
+  if(n===16){resetS16();initS16();setInfo('Two-heap median — press → to step through the stream');}
+  if(n===17)setInfo('Summary — thank you!');
+}
+
+function goSlide(n){
+  clearAll();
+  document.getElementById('s'+curSlide).classList.remove('active');
+  document.getElementById('s'+n).classList.add('active');
+  curSlide=n;
+  setCounter('Slide '+n+' / '+SLIDE_COUNT);
+  updateJumpActive();
+  resetSlideScroll();
+  onEnterSlide(n);
+  requestAnimationFrame(function(){applySlideZoom();});
+}
+
+function nextStep(){
+  clearAll();
+  if(curSlide===1){goSlide(2);return;}
+  if(curSlide===2){if(s2Step<S2.length){S2[s2Step]();s2Step++;return;}goSlide(3);return;}
+  if(curSlide===3){if(s3Step<S3.length){S3[s3Step]();s3Step++;return;}goSlide(4);return;}
+  if(curSlide===4){if(s4Step<S4.length){S4[s4Step]();s4Step++;return;}goSlide(5);return;}
+  if(curSlide===5){if(advanceS5())return;goSlide(6);return;}
+  if(curSlide===6){if(advanceS6())return;if(s6Step<S6.length){S6[s6Step]();s6Step++;return;}goSlide(7);return;}
+  if(curSlide===7){if(advanceS7())return;goSlide(8);return;}
+  if(curSlide===8){if(s8Step<S8.length){S8[s8Step]();s8Step++;return;}goSlide(9);return;}
+  if(curSlide===9){if(advanceS9())return;if(runSteps(S9,'s9Step'))return;goSlide(10);return;}
+  if(curSlide===10){if(advanceS10Pop())return;goSlide(11);return;}
+  if(curSlide===11){if(advanceS11Heap())return;if(runSteps(S11HS,'s11HsStep'))return;goSlide(12);return;}
+  if(curSlide===12){if(s12Step<S12.length){S12[s12Step]();s12Step++;return;}goSlide(13);return;}
+  if(curSlide===13){if(s13Step<S13.length){S13[s13Step]();s13Step++;return;}goSlide(14);return;}
+  if(curSlide===14){
+    if(lcActiveTab==='merge'&&advanceMergeK())return;
+    goSlide(15);return;
+  }
+  if(curSlide===15){if(s15Step<S15.length){S15[s15Step]();s15Step++;return;}goSlide(16);return;}
+  if(curSlide===16){if(advanceS16())return;if(runSteps(S16,'s16Step'))return;goSlide(17);return;}
+}
+
+function prevSlide(){
+  clearAll();
+  if(curSlide===1)return;
+  if(curSlide===2){if(rewindSteps(S2,'s2Step',resetS2))return;goSlide(1);return;}
+  if(curSlide===3){if(rewindSteps(S3,'s3Step',resetS3))return;goSlide(2);return;}
+  if(curSlide===4){if(rewindSteps(S4,'s4Step',resetS4))return;goSlide(3);return;}
+  if(curSlide===5){if(rewindS5())return;goSlide(4);return;}
+  if(curSlide===6){if(s6Step>0){s6Step--;resetS6();for(var a=0;a<s6Step;a++)S6[a]();if(s6Step===0){s6Idx=0;showS6Step(0);}return;}if(rewindS6())return;goSlide(5);return;}
+  if(curSlide===7){if(rewindS7())return;goSlide(6);return;}
+  if(curSlide===8){if(rewindSteps(S8,'s8Step',resetS8))return;goSlide(7);return;}
+  if(curSlide===9){if(s9Step>0){s9Step--;resetS9();for(var b=0;b<s9Step;b++)S9[b]();if(s9Step===0){s9Idx=0;showS9Step(0);}return;}if(rewindS9())return;goSlide(8);return;}
+  if(curSlide===10){if(rewindS10Pop())return;goSlide(9);return;}
+  if(curSlide===11){if(s11HsStep>0){s11HsStep--;resetS11Heap();for(var c=0;c<s11HsStep;c++)S11HS[c]();if(s11HsStep===0){s11Idx=0;showS11Heap(0);}return;}if(rewindS11Heap())return;goSlide(10);return;}
+  if(curSlide===12){if(rewindSteps(S12,'s12Step',resetS12))return;goSlide(11);return;}
+  if(curSlide===13){if(rewindSteps(S13,'s13Step',resetS13))return;goSlide(12);return;}
+  if(curSlide===14){goSlide(13);return;}
+  if(curSlide===15){if(rewindSteps(S15,'s15Step',resetS15))return;goSlide(14);return;}
+  if(curSlide===16){if(s16Step>0){s16Step--;resetS16();for(var d=0;d<s16Step;d++)S16[d]();if(s16Step===0){s16Idx=0;showS16Frame(0);}return;}if(rewindS16())return;goSlide(15);return;}
+  if(curSlide===17){goSlide(16);return;}
+}
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();nextStep();}
+  if(e.key==='ArrowLeft'){e.preventDefault();prevSlide();}
+  if(e.key==='Escape'){toggleJumpPanel(false);}
+});
+
+buildJumpPanel();
+initCodeBlocks();
+initZoom();
+setCounter('Slide 1 / '+SLIDE_COUNT);
+
+document.addEventListener('click',function(e){
+  var panel=document.getElementById('jump-panel');
+  var toggle=document.getElementById('jump-toggle');
+  if(!panel||!panel.classList.contains('open'))return;
+  if(!panel.contains(e.target)&&toggle&&!toggle.contains(e.target))toggleJumpPanel(false);
+});
+</script>
+</body>
+</html>
